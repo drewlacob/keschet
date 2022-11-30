@@ -4,8 +4,8 @@ from PIL import Image, ImageTk
 from PIL.ImageTk import PhotoImage
 
 POSSIBLE_MOVE_COLOR = '#42e340'
-BASE_WIDTH = 621
-BASE_HEIGHT = 621
+BASE_WIDTH = 771
+BASE_HEIGHT = 771
 BASE_SIDEWIDGET_WIDTH = 360
 
 class GameBoard(tk.Frame):
@@ -44,8 +44,9 @@ class GameBoard(tk.Frame):
         self.textX = (columns * size) // 2
         self.textY = (rows * size) // 2
         self.sideWidgetCanvas.create_text(self.textX, self.textY, text='Welcome to Keschet!', fill='white', tag='sideWidgetText')
-        self.startButton = tk.Button(self.sideWidgetCanvas, text='Start Game', command=self.startDeploymentPhase)
+        self.startButton = tk.Button(self.sideWidgetCanvas, text='Start Deployment', command=self.startDeploymentPhase)
         self.startButton.configure(width=15,  activebackground = "#33B5E5", relief = 'flat')
+        #add quick deploy button <---- NEXT UP
         self.sideWidgetCanvas.create_window(self.textX, self.textY + size, window=self.startButton)
         self.sideWidgetCanvas.pack(side='right', fill='both', expand=True)
 
@@ -57,24 +58,71 @@ class GameBoard(tk.Frame):
         self.startButton.destroy()
         self.sideWidgetCanvas.delete('sideWidgetText')
 
-        self.sideWidgetCanvas.create_text(self.textX, self.textY - self.size, text='Deploy Pieces', fill='white', tag='sideWidgetText')
+        self.sideWidgetCanvas.create_text(self.textX, self.size, text='Deploy Pieces', fill='white', tag='sideWidgetText')
         turnText = 'Player ' + str(self.turn) + '\'s Turn' 
-        self.playersTurnTextID = self.sideWidgetCanvas.create_text(self.textX, self.textY, text=turnText, fill='white', tag='playersTurnTextID')
+        self.playersTurnTextID = self.sideWidgetCanvas.create_text(self.textX, self.size*2, text=turnText, fill='white', tag='playersTurnTextID')
 
+        #place emperor button
         placeEmperorText = 'Place Emperor | 1 Remaining'
         self.placeEmperorButton = tk.Button(self.sideWidgetCanvas, text=placeEmperorText, command=lambda : self.placePieceHelper('E'))
         self.placeEmperorButton.configure(width=30,  activebackground = "#33B5E5", relief = 'flat')
-        self.sideWidgetCanvas.create_window(self.textX, self.textY + self.size + self.size, window=self.placeEmperorButton)
+        self.sideWidgetCanvas.create_window(self.textX, self.size*3, window=self.placeEmperorButton)
+
+        #place pawn button
+        placePawnText = 'Place Man-at-Arms | 8 Remaining'
+        self.placePawnButton = tk.Button(self.sideWidgetCanvas, text=placePawnText, command=lambda : self.placePieceHelper('P'))
+        self.placePawnButton.configure(width=30,  activebackground = "#33B5E5", relief = 'flat')
+        self.sideWidgetCanvas.create_window(self.textX, self.size*3.75, window=self.placePawnButton)
+
+        #place archer button
+        placeArcherText = 'Place Archer | 6 Remaining'
+        self.placeArcherButton = tk.Button(self.sideWidgetCanvas, text=placeArcherText, command=lambda : self.placePieceHelper('A'))
+        self.placeArcherButton.configure(width=30,  activebackground = "#33B5E5", relief = 'flat')
+        self.sideWidgetCanvas.create_window(self.textX, self.size*4.5, window=self.placeArcherButton)
+
+        #place lancer button
+        placeLancerText = 'Place Lancer | 4 Remaining'
+        self.placeLancerButton = tk.Button(self.sideWidgetCanvas, text=placeLancerText, command=lambda : self.placePieceHelper('L'))
+        self.placeLancerButton.configure(width=30,  activebackground = "#33B5E5", relief = 'flat')
+        self.sideWidgetCanvas.create_window(self.textX, self.size*5.25, window=self.placeLancerButton)
+
+        #place merchant button
+        placeMerchantText = 'Place Merchant | 2 Remaining'
+        self.placeMerchantButton = tk.Button(self.sideWidgetCanvas, text=placeMerchantText, command=lambda : self.placePieceHelper('M'))
+        self.placeMerchantButton.configure(width=30,  activebackground = "#33B5E5", relief = 'flat')
+        self.sideWidgetCanvas.create_window(self.textX, self.size*6, window=self.placeMerchantButton)
+
+        #place merchant button
+        placeGeneralText = 'Place General | 1 Remaining'
+        self.placeGeneralButton = tk.Button(self.sideWidgetCanvas, text=placeGeneralText, command=lambda : self.placePieceHelper('G'))
+        self.placeGeneralButton.configure(width=30,  activebackground = "#33B5E5", relief = 'flat')
+        self.sideWidgetCanvas.create_window(self.textX, self.size*6.75, window=self.placeGeneralButton)
+
+        #place merchant button
+        placeScholarText = 'Place Scholar | 1 Remaining'
+        self.placeScholarButton = tk.Button(self.sideWidgetCanvas, text=placeScholarText, command=lambda : self.placePieceHelper('S'))
+        self.placeScholarButton.configure(width=30,  activebackground = "#33B5E5", relief = 'flat')
+        self.sideWidgetCanvas.create_window(self.textX, self.size*7.5, window=self.placeScholarButton)
+
+        #place merchant button
+        placeThiefText = 'Place Thief | 3 Remaining'
+        self.placeThiefButton = tk.Button(self.sideWidgetCanvas, text=placeThiefText, command=lambda : self.placePieceHelper('T'))
+        self.placeThiefButton.configure(width=30,  activebackground = "#33B5E5", relief = 'flat')
+        self.sideWidgetCanvas.create_window(self.textX, self.size*8.25, window=self.placeThiefButton)
+
+        #start button?
 
     def placePieceHelper(self, pieceType):
         print('Player ' + str(self.turn) + ' is attempting to place a ' + pieceType)
         squares = self.canvas.find_withtag('square')
         for square in squares:
             coords = self.canvas.coords(square)
-            c = coords[1] // self.size
-            if self.turn == 1 and c >= 7:
+            c = int(coords[1] // self.size)
+            r = int(coords[0] // self.size)
+            # print(r, c)
+            if self.turn == 1 and c >= 7 and self.matrix[c][r] == '-':
                 self.canvas.itemconfigure(square, fill=POSSIBLE_MOVE_COLOR)
-            if self.turn == 2 and c <= 2:
+            if self.turn == 2 and c <= 2 and self.matrix[c][r] == '-':
                 self.canvas.itemconfigure(square, fill=POSSIBLE_MOVE_COLOR)
         self.deployingPieceType = pieceType
         self.awaitingDeployClick = True
@@ -122,20 +170,67 @@ class GameBoard(tk.Frame):
 
             if self.turn == 1: #if white is next to deploy, update deployment buttons
                 deployedEmperors = self.white_pieces.get('E', 0)
+                deployedPawns = self.white_pieces.get('P', 0)
+                deployedLancers = self.white_pieces.get('L', 0)
+                deployedMerchants = self.white_pieces.get('M', 0)
+                deployedArchers = self.white_pieces.get('A', 0)
+                deployedGenerals = self.white_pieces.get('G', 0)
+                deployedScholars = self.white_pieces.get('S', 0)
+                deployedThieves = self.white_pieces.get('T', 0)
             else:
                 deployedEmperors = self.black_pieces.get('E', 0)
+                deployedPawns = self.black_pieces.get('P', 0)
+                deployedLancers = self.black_pieces.get('L', 0)
+                deployedMerchants = self.black_pieces.get('M', 0)
+                deployedArchers = self.black_pieces.get('A', 0)
+                deployedGenerals = self.black_pieces.get('G', 0)
+                deployedScholars = self.black_pieces.get('S', 0)
+                deployedThieves = self.black_pieces.get('T', 0)
 
-            #update emperor button
-            remainingToDeploy = 1 - deployedEmperors
-            placeEmperorText = 'Place Emperor | ' + str(remainingToDeploy) + ' Remaining'
-            self.placeEmperorButton.config(text=placeEmperorText)
-            if deployedEmperors == 1:
-                self.placeEmperorButton['state'] = 'disabled'
-            else:
-                self.placeEmperorButton['state'] = 'normal'
+            self.updateDeployButton('E', self.placeEmperorButton, deployedEmperors)
+            self.updateDeployButton('P', self.placePawnButton, deployedPawns)
+            self.updateDeployButton('L', self.placeLancerButton, deployedLancers)
+            self.updateDeployButton('M', self.placeMerchantButton, deployedMerchants)
+            self.updateDeployButton('A', self.placeArcherButton, deployedArchers)
+            self.updateDeployButton('G', self.placeGeneralButton, deployedGenerals)
+            self.updateDeployButton('S', self.placeScholarButton, deployedScholars)
+            self.updateDeployButton('T', self.placeThiefButton, deployedThieves)
 
             self.awaitingDeployClick = False
             self.redrawBoard()
+            # print(self.matrix)
+
+    def updateDeployButton(self, pieceType, deployButton, deployedCount):
+        if pieceType == 'E':
+            remainingPiecesToDeploy = 1 - deployedCount
+            newText = 'Place Emperor | ' + str(remainingPiecesToDeploy) + ' Remaining'
+        elif pieceType == 'P':
+            remainingPiecesToDeploy = 8 - deployedCount
+            newText = 'Place Man-at-Arms | ' + str(remainingPiecesToDeploy) + ' Remaining'
+        elif pieceType == 'L':
+            remainingPiecesToDeploy = 4 - deployedCount
+            newText = 'Place Lancer | ' + str(remainingPiecesToDeploy) + ' Remaining'
+        elif pieceType == 'M':
+            remainingPiecesToDeploy = 2 - deployedCount
+            newText = 'Place Merchant | ' + str(remainingPiecesToDeploy) + ' Remaining'
+        elif pieceType == 'A':
+            remainingPiecesToDeploy = 6 - deployedCount
+            newText = 'Place Archer | ' + str(remainingPiecesToDeploy) + ' Remaining'
+        elif pieceType == 'G':
+            remainingPiecesToDeploy = 1 - deployedCount
+            newText = 'Place General | ' + str(remainingPiecesToDeploy) + ' Remaining'
+        elif pieceType == 'S':
+            remainingPiecesToDeploy = 1 - deployedCount
+            newText = 'Place Scholar | ' + str(remainingPiecesToDeploy) + ' Remaining'
+        elif pieceType == 'T':
+            remainingPiecesToDeploy = 3 - deployedCount
+            newText = 'Place Thief | ' + str(remainingPiecesToDeploy) + ' Remaining'
+
+        deployButton.config(text=newText)
+        if remainingPiecesToDeploy:
+            deployButton['state'] = 'normal'
+        else:
+            deployButton['state'] = 'disabled'
 
     def redrawBoard(self):
         self.canvas.delete("square")
@@ -164,6 +259,7 @@ class GameBoard(tk.Frame):
         
     def refresh(self, event):
         '''Redraw the board, possibly in response to window being resized'''
+        print(event.width, event.height)
         xsize = int((event.width-1) / self.columns)
         ysize = int((event.height-1) / self.rows)
         self.size = min(xsize, ysize)
@@ -190,9 +286,9 @@ class GameBoard(tk.Frame):
     def redrawSideWidget(self, event):
         # print(event.width, event.height)
         self.textX = event.width // 2
-        self.textY = (self.rows * self.size) // 2
+        self.textY = self.size #(self.rows * self.size) // 2
         sideWidgetItems = self.sideWidgetCanvas.find_all()
-        curY = self.textY - (self.size * 2)
+        curY = self.textY #- (self.size * 2)
         for widget in sideWidgetItems:
             self.sideWidgetCanvas.coords(widget, self.textX, curY)
             curY += self.size
@@ -201,6 +297,8 @@ class GameBoard(tk.Frame):
         path = os.path.join(os.path.dirname(__file__), "white") #stores white pieces images into dicts
         w_dirs = os.listdir(path)
         for file in w_dirs:
+            if file == '.DS_Store':
+                continue
             img = Image.open(path+"/"+file)
             img = img.resize((60,60), Image.Resampling.LANCZOS)
             img = ImageTk.PhotoImage(image=img)
@@ -209,6 +307,8 @@ class GameBoard(tk.Frame):
         path = os.path.join(os.path.dirname(__file__), "black") #stores black pieces images into dicts
         b_dirs = os.listdir(path)
         for file in b_dirs:
+            if file == '.DS_Store':
+                continue
             img = Image.open(path+"/"+file)
             img = img.resize((60,60), Image.Resampling.LANCZOS)
             img = ImageTk.PhotoImage(image=img)
@@ -217,8 +317,5 @@ class GameBoard(tk.Frame):
 root = tk.Tk()
 board = GameBoard(root)
 board.pack(side="top", fill="both", expand="true")
-board.configure(bg ='blue')
-
 board.import_pieces()
-
 root.mainloop()
