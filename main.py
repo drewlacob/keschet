@@ -46,6 +46,8 @@ class GameBoard(tk.Frame):
         self.allowedMoves = set()
         self.whiteProtectedSquares = None
         self.blackProtectedSquares = None
+        self.pieceToDeployFromThief = None
+        self.awaitingThiefStealDeployment = None
 
         tk.Frame.__init__(self, parent)
         
@@ -80,8 +82,8 @@ class GameBoard(tk.Frame):
                        ['-', 'bM', 'bL', 'bA', '-', 'bA', 'bA', 'bM', 'bA', 'bL'],
                        ['bA', 'bP', 'bP', 'bP', 'bL', 'bL', 'bP', 'bP', 'bP', 'bA'],
                        ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
-                       ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
-                       ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
+                       ['-', '-', '-', '-', '-', 'bT', 'bP', '-', '-', '-'],
+                       ['-', '-', '-', '-', '-', 'wT', '-', '-', '-', '-'],
                        ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
                        ['wA', 'wP', 'wP', 'wP', 'wL', 'wL', 'wP', 'wP', 'wP', 'wA'],
                        ['wL', 'wA', 'wM', 'wA', 'wA', '-', 'wA', 'wL', 'wM', '-'],
@@ -124,18 +126,29 @@ class GameBoard(tk.Frame):
 
     def placePieceHelper(self, pieceType):
         print('Player ' + str(self.turn) + ' is attempting to place a ' + pieceType)
+        self.colorDeployableSquares()
+        # squares = self.canvas.find_withtag('square')
+        # for square in squares:
+        #     coords = self.canvas.coords(square)
+        #     c = int(coords[1] // self.size)
+        #     r = int(coords[0] // self.size)
+        #     if self.turn == 1 and c >= 7 and self.matrix[c][r] == '-':
+        #         self.canvas.itemconfigure(square, fill=POSSIBLE_MOVE_COLOR)
+        #     if self.turn == 2 and c <= 2 and self.matrix[c][r] == '-':
+        #         self.canvas.itemconfigure(square, fill=POSSIBLE_MOVE_COLOR)
+        self.deployingPieceType = pieceType
+        self.awaitingDeployClick = True
+
+    def colorDeployableSquares(self):
         squares = self.canvas.find_withtag('square')
         for square in squares:
             coords = self.canvas.coords(square)
             c = int(coords[1] // self.size)
             r = int(coords[0] // self.size)
-            # print(r, c)
             if self.turn == 1 and c >= 7 and self.matrix[c][r] == '-':
                 self.canvas.itemconfigure(square, fill=POSSIBLE_MOVE_COLOR)
             if self.turn == 2 and c <= 2 and self.matrix[c][r] == '-':
                 self.canvas.itemconfigure(square, fill=POSSIBLE_MOVE_COLOR)
-        self.deployingPieceType = pieceType
-        self.awaitingDeployClick = True
 
     def getorigin(self, eventorigin):
         self.mouseX = eventorigin.x
@@ -191,25 +204,58 @@ class GameBoard(tk.Frame):
         #move click
         if self.playPhaseStarted:
             print(r, c)
-            if self.turn == 1: #white move
+            if self.awaitingThiefStealDeployment: #piece from thief capture is being deployed #REFACTOR
+                if self.turn == 1 and r >= 7 and self.matrix[r][c] == '-':
+                    self.matrix[r][c] = self.awaitingThiefStealDeployment
+                    self.awaitingThiefStealDeployment = None
+                    self.redrawPieces()
+                    self.redrawBoard()
+                    self.turn = 2
+                    turnText = 'Black to Move' 
+                    self.sideWidgetCanvas.itemconfigure(self.playersTurnTextID, text=turnText)
+                elif self.turn == 2 and r <= 2 and self.matrix[r][c] == '-':
+                    self.matrix[r][c] = self.awaitingThiefStealDeployment
+                    self.awaitingThiefStealDeployment = None
+                    self.redrawPieces()
+                    self.redrawBoard()
+                    self.turn = 1
+                    turnText = 'White to Move' 
+                    self.sideWidgetCanvas.itemconfigure(self.playersTurnTextID, text=turnText)
+            elif self.turn == 1: #white move
                 if self.pieceToMove and (r, c) in self.allowedMoves:#if a piece is currently selected and the new selection is a place to move
                     selectedPiece = self.matrix[self.pieceToMove[0]][self.pieceToMove[1]]
-
-                    if selectedPiece[1] == 'S': #if scholar is being moved, then remove protection
+                    
+                     #if scholar is being moved or piece moves out of protection, then remove protection from square
+                    if selectedPiece[1] == 'S' or self.whiteProtectedSquares == (self.pieceToMove[0], self.pieceToMove[1]):
                         self.whiteProtectedSquares = None
+
+                    if self.matrix[r][c] == 'bS': #if killing enemy scholar, remove that scholars protected square
+                        self.blackProtectedSquares = None
                     #if scholar is selected piece and clicking on same color piece to protect
                     if selectedPiece[1] == 'S' and self.matrix[r][c][0] == selectedPiece[0]:
                         self.whiteProtectedSquares = (r, c)
+                    
+                    #if theif is capturing an enemy piece
+                    elif selectedPiece[1] == 'T' and self.matrix[r][c][0] == 'b':
+                        self.awaitingThiefStealDeployment = 'w' + self.matrix[r][c][1]
+                        self.matrix[r][c] = self.matrix[self.pieceToMove[0]][self.pieceToMove[1]]
+                        self.matrix[self.pieceToMove[0]][self.pieceToMove[1]] = '-'
+                        self.redrawBoard()
+                        self.colorDeployableSquares()
                     else:    #general case, move piece
                         self.matrix[r][c] = self.matrix[self.pieceToMove[0]][self.pieceToMove[1]]
                         self.matrix[self.pieceToMove[0]][self.pieceToMove[1]] = '-'
 
-                    self.redrawPieces()
-                    self.turn = 2
-                    turnText = 'Black to Move' 
+                    #update turn text
+                    if not self.awaitingThiefStealDeployment:
+                        self.turn = 2
+                        turnText = 'Black to Move' 
+                        self.sideWidgetCanvas.itemconfigure(self.playersTurnTextID, text=turnText)
+
                     #redraw board and clean up for next turn
-                    self.sideWidgetCanvas.itemconfigure(self.playersTurnTextID, text=turnText)
-                    self.redrawBoard()
+                    self.redrawPieces()
+                    if not self.awaitingThiefStealDeployment:
+                        self.redrawBoard()
                     self.pieceToMove = None
                     self.allowedMoves.clear()
                 elif self.matrix[r][c][0] == 'w': #selected a piece of your color
@@ -219,17 +265,40 @@ class GameBoard(tk.Frame):
                     self.colorPieceAndPossibleMoves(r, c)
             else: #black move
                 if self.pieceToMove and (r, c) in self.allowedMoves:#if a piece is currently selected and the new selection is a place to move
-                    self.matrix[r][c] = self.matrix[self.pieceToMove[0]][self.pieceToMove[1]]
-                    self.matrix[self.pieceToMove[0]][self.pieceToMove[1]] = '-'
+                    selectedPiece = self.matrix[self.pieceToMove[0]][self.pieceToMove[1]]
+                    #if scholar is being moved or piece moves out of protection, then remove protection from square
+                    if selectedPiece[1] == 'S' or self.blackProtectedSquares == (self.pieceToMove[0], self.pieceToMove[1]): 
+                        self.blackProtectedSquares = None
+                    
+                    if self.matrix[r][c] == 'wS': #if killing enemy scholar, remove that scholars protected square
+                        self.whiteProtectedSquares = None
+                    #if scholar is selected piece and clicking on same color piece to protect
+                    if selectedPiece[1] == 'S' and self.matrix[r][c][0] == selectedPiece[0]:
+                        self.blackProtectedSquares = (r, c)
+                    #if theif is capturing an enemy piece
+                    elif selectedPiece[1] == 'T' and self.matrix[r][c][0] == 'w':
+                        self.awaitingThiefStealDeployment = 'b' + self.matrix[r][c][1]
+                        self.matrix[r][c] = self.matrix[self.pieceToMove[0]][self.pieceToMove[1]]
+                        self.matrix[self.pieceToMove[0]][self.pieceToMove[1]] = '-'
+                        self.redrawBoard()
+                        self.colorDeployableSquares()
+                    else:    #general case, move piece
+                        self.matrix[r][c] = self.matrix[self.pieceToMove[0]][self.pieceToMove[1]]
+                        self.matrix[self.pieceToMove[0]][self.pieceToMove[1]] = '-'
+
+                    #update turn text
+                    if not self.awaitingThiefStealDeployment:
+                        self.turn = 1
+                        turnText = 'White to Move' 
+                        self.sideWidgetCanvas.itemconfigure(self.playersTurnTextID, text=turnText)
+
+                    #redraw board and clean up for next turn
                     self.redrawPieces()
-                    self.turn = 1
-                    turnText = 'White to Move' 
-                    self.sideWidgetCanvas.itemconfigure(self.playersTurnTextID, text=turnText)
-                    self.redrawBoard()
+                    if not self.awaitingThiefStealDeployment:
+                        self.redrawBoard()
                     self.pieceToMove = None
                     self.allowedMoves.clear()
-                    return
-                elif self.matrix[r][c][0] == 'b':
+                elif self.matrix[r][c][0] == 'b': #selected a piece of your color
                     self.pieceToMove = (r, c)
                     self.calcAllowedMoves()
                     self.redrawBoard()
@@ -341,6 +410,13 @@ class GameBoard(tk.Frame):
                 else:
                     self.allowedMoves.add((rMove, cMove))
 
+        #remove enemy protected square if it was listed as a possible move
+        
+        enemyProtectedSquare = self.whiteProtectedSquares if pieceColor == 'b' else self.blackProtectedSquares
+        print('enemyProtectedSquare', enemyProtectedSquare)
+        print(self.allowedMoves)
+        if enemyProtectedSquare in self.allowedMoves: self.allowedMoves.remove(enemyProtectedSquare)
+
     def calcHorizontalorVerticalMoves(self, r, c, distance):
         pieceColor = self.matrix[r][c][0]
         enemyColor = 'w' if pieceColor == 'b' else 'b'
@@ -380,6 +456,9 @@ class GameBoard(tk.Frame):
                     break
                 else:
                     self.allowedMoves.add((r-i, c))
+
+        enemyProtectedSquare = self.whiteProtectedSquares if pieceColor == 'b' else self.blackProtectedSquares
+        if enemyProtectedSquare in self.allowedMoves: self.allowedMoves.remove(enemyProtectedSquare)
 
     def isOnBoard(self, r, c):
         if r >= 0 and r < self.rows and c >= 0 and c < self.columns:
