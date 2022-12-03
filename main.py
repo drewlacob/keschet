@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import font
 import os, sys
 from PIL import Image, ImageTk
 from PIL.ImageTk import PhotoImage
@@ -17,10 +18,12 @@ DEPLOY_BUTTON_TEXTS = {'E' : 'Place Emperor | 1 Remaining', 'G' : 'Place General
 #TODO:
 #clone a scholar
 #end game when emperor killed
+#color emperor purple when under attack
 #turn counter during movement phase
 #add start button when deployment phase finished
 #add move descriptions to before game start and during move phase
 #add board flip button to move phase
+#fix running out of spaces for thief deploy
 #implement check mechanic?
 class GameBoard(tk.Frame):
     def __init__(self, parent, rows=10, columns=10, size=60, color1="#f9b46c", color2="#432d09"):
@@ -52,10 +55,11 @@ class GameBoard(tk.Frame):
         self.black_pieces = {}
         self.deployButtons = {}
         self.allowedMoves = set()
-        self.whiteProtectedSquares = None
-        self.blackProtectedSquares = None
+        self.whiteProtectedSquares = set()
+        self.blackProtectedSquares = set()
         self.pieceToDeployFromThief = None
         self.awaitingThiefStealDeployment = None
+        self.turnCount = 1
 
         tk.Frame.__init__(self, parent)
         
@@ -90,12 +94,12 @@ class GameBoard(tk.Frame):
                        ['-', 'bM', 'bL', 'bA', '-', 'bA', 'bA', 'bM', 'bA', 'bL'],
                        ['bA', 'bP', 'bP', 'bP', 'bL', 'bL', 'bP', 'bP', 'bP', 'bA'],
                        ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
-                       ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
-                       ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
-                       ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
+                       ['-', '-', 'bP', 'bS', 'wS', 'bT', 'bT', '-', '-', '-'],
+                       ['-', '-', '-', '-', '-', 'wT', '-', '-', '-', '-'],
+                       ['-', '-', '-', 'wE', '-', '-', '-', '-', '-', '-'],
                        ['wA', 'wP', 'wP', 'wP', 'wL', 'wL', 'wP', 'wP', 'wP', 'wA'],
                        ['wL', 'wA', 'wM', 'wA', 'wA', '-', 'wA', 'wL', 'wM', '-'],
-                       ['wT', 'wP', 'wP', '-', 'wT', 'wS', 'wG', 'wE', 'wT', '-']]
+                       ['wT', 'wP', 'wP', '-', 'wT', 'wS', 'wG', '-', 'wT', '-']]
         
         self.redrawPieces()
         #move to begin play + player turn + turn counter + move descriptions 
@@ -105,8 +109,11 @@ class GameBoard(tk.Frame):
     def beginPlay(self):
         self.playPhaseStarted = True
         self.turn = 1
+        BOLD_FONT = font.Font(family='freemono', size=18, weight="bold")
         turnText = 'White To Move' 
-        self.playersTurnTextID = self.sideWidgetCanvas.create_text(self.textX, self.size*2, text=turnText, fill='white', tag='playersTurnTextID')        
+        self.playersTurnTextID = self.sideWidgetCanvas.create_text(self.textX, self.size*2, text=turnText, font=BOLD_FONT, fill='white', tag='playersTurnTextID')        
+        turnCountText = 'Turn 1' 
+        self.turnCountText = self.sideWidgetCanvas.create_text(self.textX, self.size, text=turnCountText, font=BOLD_FONT, fill='white', tag='turnCountText') 
 
     def startDeploymentPhase(self):
         self.startButton.destroy()
@@ -150,39 +157,28 @@ class GameBoard(tk.Frame):
     def getorigin(self, eventorigin):
         c = eventorigin.x // self.size
         r = eventorigin.y // self.size
-        #REFACTOR, maybe combine the if statements for player 1 and 2
         if self.awaitingDeployClick: #handle deployment click to board once piece selected
-            if self.matrix[r][c] != '-': #if square already occupied, stop
+            if self.matrix[r][c] != '-' or (self.turn == 1 and r < 7) or (self.turn == 2 and r > 2): #if square occupied or outside of deployment bounds
                 return
-            if self.turn == 1: #player 1 is deploying
-                if r < 7:
-                    return
-                self.matrix[r][c] = 'w' + self.deployingPieceType
-                x0 = (c * self.size) + int(self.size/2)
-                y0 = (r * self.size) + int(self.size/2)
-                imageIdentifier = self.deployingPieceType + '.png'
-                self.canvas.create_image(x0, y0, image = self.white_images[imageIdentifier], tags=(self.matrix[r][c], 'piece'))
-                self.turn = 2
-                if self.deployingPieceType not in self.white_pieces:
-                    self.white_pieces[self.deployingPieceType] = 1
-                else:
-                    self.white_pieces[self.deployingPieceType] += 1
-            else: #player 2 is deploying
-                if r > 2:
-                    return
-                self.matrix[r][c] = 'b' + self.deployingPieceType
-                x0 = (c * self.size) + int(self.size/2)
-                y0 = (r * self.size) + int(self.size/2)
-                imageIdentifier = self.deployingPieceType + '.png'
-                self.canvas.create_image(x0, y0, image = self.black_images[imageIdentifier], tags=(self.matrix[r][c], 'piece'))
-                self.turn = 1
-                if self.deployingPieceType not in self.black_pieces:
-                    self.black_pieces[self.deployingPieceType] = 1
-                else:
-                    self.black_pieces[self.deployingPieceType] += 1
+            self.matrix[r][c] = ('w' + self.deployingPieceType) if self.turn == 1 else ('b' + self.deployingPieceType)
+            x0 = (c * self.size) + int(self.size/2)
+            y0 = (r * self.size) + int(self.size/2)
+            imageIdentifier = self.deployingPieceType + '.png'
+            images = self.white_images if self.turn == 1 else self.black_images
+            self.canvas.create_image(x0, y0, image = images[imageIdentifier], tags=(self.matrix[r][c], 'piece'))
+            curPieces = self.white_pieces if self.turn == 1 else self.black_pieces
+            if self.deployingPieceType not in curPieces:
+                curPieces[self.deployingPieceType] = 1
+            else:
+                curPieces[self.deployingPieceType] += 1
+            self.turn = 2 if self.turn == 1 else 1
 
             turnText = 'Player ' + str(self.turn) + '\'s Turn' 
             self.sideWidgetCanvas.itemconfigure(self.playersTurnTextID, text=turnText)
+            self.turnCount += 1
+            turnCountText = 'Turn ' + str(self.turnCount)
+            self.sideWidgetCanvas.itemconfigure(self.turnCountText, text=turnCountText)
+
             self.updateDeployButton('E')
             self.updateDeployButton('P')
             self.updateDeployButton('L')
@@ -191,156 +187,156 @@ class GameBoard(tk.Frame):
             self.updateDeployButton('G')
             self.updateDeployButton('S')
             self.updateDeployButton('T')
-
             self.awaitingDeployClick = False
             self.redrawBoard()
         
         #move click
-        if self.playPhaseStarted: #REFACTOR, this is so bad
+        if self.playPhaseStarted:
             print(r, c)
+            pieceColor = 'w' if self.turn == 1 else 'b'
             if self.awaitingThiefStealDeployment: #piece from thief capture is being deployed #REFACTOR
-                if self.turn == 1 and r >= 7 and self.matrix[r][c] == '-':
+                if (self.turn == 1 and r >= 7 and self.matrix[r][c] == '-') or (self.turn == 2 and r <= 2 and self.matrix[r][c] == '-'):
                     self.matrix[r][c] = self.awaitingThiefStealDeployment
                     self.awaitingThiefStealDeployment = None
                     self.redrawPieces()
                     self.redrawBoard()
-                    self.turn = 2
-                    turnText = 'Black to Move' 
+                    turnText = 'Black to Move' if self.turn == 1 else 'White to Move'
                     self.sideWidgetCanvas.itemconfigure(self.playersTurnTextID, text=turnText)
-                elif self.turn == 2 and r <= 2 and self.matrix[r][c] == '-':
-                    self.matrix[r][c] = self.awaitingThiefStealDeployment
-                    self.awaitingThiefStealDeployment = None
-                    self.redrawPieces()
+                    self.turn = 2 if self.turn == 1 else 1
+                    self.turnCount += 1
+                    turnCountText = 'Turn ' + str(self.turnCount)
+                    self.sideWidgetCanvas.itemconfigure(self.turnCountText, text=turnCountText)
+
+            #handle normal move during play phase
+            elif self.pieceToMove and (r, c) in self.allowedMoves: #if a piece is currently selected and the new selection is a place to move
+                selectedPiece = self.matrix[self.pieceToMove[0]][self.pieceToMove[1]]
+                
+                #if scholar is being moved or piece moves out of protection, then remove protection from square
+                myProtectedSquares = self.whiteProtectedSquares if self.turn == 1 else self.blackProtectedSquares
+                if selectedPiece[1] == 'S' or (self.pieceToMove[0], self.pieceToMove[1]) in myProtectedSquares:
+                    myProtectedSquares.clear()
+                
+                enemyColor = 'b' if pieceColor == 'w' else 'w'
+                enemyProtectedSquares = self.blackProtectedSquares if self.turn == 1 else self.whiteProtectedSquares
+                if self.matrix[r][c] == enemyColor + 'S': #if killing enemy scholar, remove that scholars protected square
+                    enemyProtectedSquares.clear()
+
+                #if scholar is selected piece and clicking on same color piece to protect
+                if selectedPiece[1] == 'S' and self.matrix[r][c][0] == pieceColor:
+                    myProtectedSquares.add((r, c)) #scholar position, protected position
+                #if thief is capturing an enemy piece
+                elif selectedPiece[1] == 'T' and self.matrix[r][c][0] == enemyColor:
+                    self.awaitingThiefStealDeployment = pieceColor + self.matrix[r][c][1]
+                    self.matrix[r][c] = self.matrix[self.pieceToMove[0]][self.pieceToMove[1]]
+                    self.matrix[self.pieceToMove[0]][self.pieceToMove[1]] = '-'
                     self.redrawBoard()
-                    self.turn = 1
-                    turnText = 'White to Move' 
+                    self.colorDeployableSquares()
+                else:    #general case, move piece
+                    self.matrix[r][c] = self.matrix[self.pieceToMove[0]][self.pieceToMove[1]]
+                    self.matrix[self.pieceToMove[0]][self.pieceToMove[1]] = '-'
+
+                #update turn text
+                if not self.awaitingThiefStealDeployment: #REFACTOR: make the following display updates into a function
+                    self.turn = 2 if self.turn == 1 else 1
+                    turnText = 'Black to Move' if self.turn == 2 else 'White to Move'
                     self.sideWidgetCanvas.itemconfigure(self.playersTurnTextID, text=turnText)
-            elif self.turn == 1: #white move
-                if self.pieceToMove and (r, c) in self.allowedMoves:#if a piece is currently selected and the new selection is a place to move
-                    selectedPiece = self.matrix[self.pieceToMove[0]][self.pieceToMove[1]]
-                    
-                     #if scholar is being moved or piece moves out of protection, then remove protection from square
-                    if selectedPiece[1] == 'S' or self.whiteProtectedSquares == (self.pieceToMove[0], self.pieceToMove[1]):
-                        self.whiteProtectedSquares = None
+                    self.turnCount += 1
+                    turnCountText = 'Turn ' + str(self.turnCount)
+                    self.sideWidgetCanvas.itemconfigure(self.turnCountText, text=turnCountText)
 
-                    if self.matrix[r][c] == 'bS': #if killing enemy scholar, remove that scholars protected square
-                        self.blackProtectedSquares = None
-                    #if scholar is selected piece and clicking on same color piece to protect
-                    if selectedPiece[1] == 'S' and self.matrix[r][c][0] == selectedPiece[0]:
-                        self.whiteProtectedSquares = (r, c)
-                    
-                    #if theif is capturing an enemy piece
-                    elif selectedPiece[1] == 'T' and self.matrix[r][c][0] == 'b':
-                        self.awaitingThiefStealDeployment = 'w' + self.matrix[r][c][1]
-                        self.matrix[r][c] = self.matrix[self.pieceToMove[0]][self.pieceToMove[1]]
-                        self.matrix[self.pieceToMove[0]][self.pieceToMove[1]] = '-'
-                        self.redrawBoard()
-                        self.colorDeployableSquares()
-                    else:    #general case, move piece
-                        self.matrix[r][c] = self.matrix[self.pieceToMove[0]][self.pieceToMove[1]]
-                        self.matrix[self.pieceToMove[0]][self.pieceToMove[1]] = '-'
+                #redraw board and clean up for next turn
+                self.redrawPieces()
+                if not self.awaitingThiefStealDeployment:
+                    self.redrawBoard()
 
-                    #update turn text
-                    if not self.awaitingThiefStealDeployment:
-                        self.turn = 2
-                        turnText = 'Black to Move' 
-                        self.sideWidgetCanvas.itemconfigure(self.playersTurnTextID, text=turnText)
-
-                    #redraw board and clean up for next turn
-                    self.redrawPieces()
-                    if not self.awaitingThiefStealDeployment:
-                        self.redrawBoard()
+                #move was made, clear the selected piece
+                self.pieceToMove = None
+                self.allowedMoves.clear()
+            elif self.matrix[r][c][0] == pieceColor: #selected a piece of your color, calculate moves and draw board with moves
+                if (r, c) == self.pieceToMove:
                     self.pieceToMove = None
                     self.allowedMoves.clear()
-                elif self.matrix[r][c][0] == 'w': #selected a piece of your color
-                    self.pieceToMove = (r, c)
-                    self.calcAllowedMoves()
                     self.redrawBoard()
-                    self.colorPieceAndPossibleMoves(r, c)
-            else: #black move
-                if self.pieceToMove and (r, c) in self.allowedMoves:#if a piece is currently selected and the new selection is a place to move
-                    selectedPiece = self.matrix[self.pieceToMove[0]][self.pieceToMove[1]]
-                    #if scholar is being moved or piece moves out of protection, then remove protection from square
-                    if selectedPiece[1] == 'S' or self.blackProtectedSquares == (self.pieceToMove[0], self.pieceToMove[1]): 
-                        self.blackProtectedSquares = None
-                    
-                    if self.matrix[r][c] == 'wS': #if killing enemy scholar, remove that scholars protected square
-                        self.whiteProtectedSquares = None
-                    #if scholar is selected piece and clicking on same color piece to protect
-                    if selectedPiece[1] == 'S' and self.matrix[r][c][0] == selectedPiece[0]:
-                        self.blackProtectedSquares = (r, c)
-                    #if theif is capturing an enemy piece
-                    elif selectedPiece[1] == 'T' and self.matrix[r][c][0] == 'w':
-                        self.awaitingThiefStealDeployment = 'b' + self.matrix[r][c][1]
-                        self.matrix[r][c] = self.matrix[self.pieceToMove[0]][self.pieceToMove[1]]
-                        self.matrix[self.pieceToMove[0]][self.pieceToMove[1]] = '-'
-                        self.redrawBoard()
-                        self.colorDeployableSquares()
-                    else:    #general case, move piece
-                        self.matrix[r][c] = self.matrix[self.pieceToMove[0]][self.pieceToMove[1]]
-                        self.matrix[self.pieceToMove[0]][self.pieceToMove[1]] = '-'
+                    return
+                self.pieceToMove = (r, c)
+                self.allowedMoves.clear()
+                self.allowedMoves = self.calcAllowedMoves(r, c)
+                self.redrawBoard()
+                self.colorPieceAndPossibleMoves(r, c)
 
-                    #update turn text
-                    if not self.awaitingThiefStealDeployment:
-                        self.turn = 1
-                        turnText = 'White to Move' 
-                        self.sideWidgetCanvas.itemconfigure(self.playersTurnTextID, text=turnText)
-
-                    #redraw board and clean up for next turn
-                    self.redrawPieces()
-                    if not self.awaitingThiefStealDeployment:
-                        self.redrawBoard()
-                    self.pieceToMove = None
-                    self.allowedMoves.clear()
-                elif self.matrix[r][c][0] == 'b': #selected a piece of your color
-                    self.pieceToMove = (r, c)
-                    self.calcAllowedMoves()
-                    self.redrawBoard()
-                    self.colorPieceAndPossibleMoves(r, c)
-
-    def calcAllowedMoves(self):
-        r = self.pieceToMove[0]
-        c = self.pieceToMove[1]
+    def calcAllowedMoves(self, r, c):
         pieceType = self.matrix[r][c][1]
-        self.allowedMoves.clear()
         if pieceType == 'P':
-            self.calcHorizontalorVerticalMoves(r, c, 2)
-            print(self.allowedMoves)
+            return self.calcHorizontalorVerticalMoves(r, c, 2)
         elif pieceType == 'A':
-            self.calcHorizontalorVerticalMoves(r, c, 6)
+            return self.calcHorizontalorVerticalMoves(r, c, 6)
         elif pieceType == 'G':
-            self.calcHorizontalorVerticalMoves(r, c, 9)
-            self.calcDiagonalMoves(r, c, 9)
+            rcMoves = self.calcHorizontalorVerticalMoves(r, c, 9)
+            diagMoves = self.calcDiagonalMoves(r, c, 9)
+            return rcMoves.union(diagMoves)
         elif pieceType == 'L':
-            self.calcDiagonalMoves(r, c, 9)
+            return self.calcDiagonalMoves(r, c, 9)
         elif pieceType == 'M':
-            self.calcHorizontalorVerticalMoves(r, c, 2)
-            self.calcDiagonalMoves(r, c, 2)
-            self.checkEmperorTeleportMoves(r, c)
+            rcMoves = self.calcHorizontalorVerticalMoves(r, c, 2)
+            diagMoves = self.calcDiagonalMoves(r, c, 2)
+            tpMoves = self.checkEmperorTeleportMoves(r, c)
+            return tpMoves.union(rcMoves.union(diagMoves))
         elif pieceType == 'S':
-            self.calcHorizontalorVerticalMoves(r, c, 2)
-            self.calcDiagonalMoves(r, c, 2)
-            self.calcScholarProtectMoves(r, c)
+            rcMoves = self.calcHorizontalorVerticalMoves(r, c, 2)
+            diagMoves = self.calcDiagonalMoves(r, c, 2)
+            spMoves = self.calcScholarProtectMoves(r, c)
+            return spMoves.union(rcMoves.union(diagMoves))
         elif pieceType == 'T':
-            self.calcHorizontalorVerticalMoves(r, c, 1)
-            self.calcDiagonalMoves(r, c, 1)
-            #deal with thief capturing and deployment of new piece
+            rcMoves = self.calcHorizontalorVerticalMoves(r, c, 1)
+            diagMoves = self.calcDiagonalMoves(r, c, 1)
+            return rcMoves.union(diagMoves)
         elif pieceType == 'E':
-            self.calcHorizontalorVerticalMoves(r, c, 1)
-            self.calcDiagonalMoves(r, c, 1)
-            #calc so emperor cannot put itself into line of fire
+            rcMoves = self.calcHorizontalorVerticalMoves(r, c, 1)
+            diagMoves = self.calcDiagonalMoves(r, c, 1)
+            return rcMoves.union(diagMoves)
+            # return self.calcEmperorMoves(r, c)
+            #calc so emperor cannot put itself into line of fire - max recursion depth, need to calc allied protections
+
+    # def calcEmperorMoves(self, r, c):
+    #     rcMoves = self.calcHorizontalorVerticalMoves(r, c, 1)
+    #     diagMoves = self.calcDiagonalMoves(r, c, 1)
+    #     possibleEmperorMoves = rcMoves.union(diagMoves)
+    #     for move in possibleEmperorMoves:
+    #         rMove, cMove = move[0], move[1]
+    #         temp = self.matrix[rMove][cMove]
+    #         emperor = self.matrix[r][c]
+    #         self.matrix[rMove][cMove] = self.matrix[r][c]
+    #         self.matrix[r][c] = '-'
+    #         attackedSquares = self.calcSquaresThatEnemyAttacks()
+    #         possibleEmperorMoves.difference(attackedSquares)
+    #         self.matrix[rMove][cMove] = temp
+    #         self.matrix[r][c] = emperor
+
+    #     return possibleEmperorMoves
+
+    # def calcSquaresThatEnemyAttacks(self): #change to attacks or defends
+    #     squares = set()
+    #     enemyColor = 'b' if self.turn == 1 else 'w'
+    #     for r1 in range(0, self.rows):
+    #         for c1 in range(0, self.columns):
+    #             if self.matrix[r1][c1][0] == enemyColor:
+    #                 moves = self.calcAllowedMoves(r1, c1)
+    #                 squares.union(moves)
+    #     return squares
 
     def calcScholarProtectMoves(self, r, c):
         pieceColor = self.matrix[r][c][0]
         #REFACTOR WITH EMPEROR
+        moves = set()
         protectedSquares = self.whiteProtectedSquares if pieceColor == 'w' else self.blackProtectedSquares
         for rVal in range(-1, 2):
             for cVal in range(-1, 2):
                 if rVal == 0 and cVal == 0: continue
                 if self.isOnBoard(r + rVal, c + cVal):
-                    if self.matrix[r + rVal][c + cVal] != '-' and self.matrix[r+rVal][c+cVal][0] == pieceColor and (r+rVal, c+cVal) != protectedSquares:
-                        self.allowedMoves.add((r+rVal, c+cVal))
+                    if self.matrix[r + rVal][c + cVal] != '-' and self.matrix[r+rVal][c+cVal][0] == pieceColor and (r+rVal, c+cVal) not in protectedSquares:
+                        moves.add((r+rVal, c+cVal))
 
+        return moves
     def checkEmperorTeleportMoves(self, r, c):
         pieceColor = self.matrix[r][c][0]
         #find the emperor of the current team
@@ -351,108 +347,122 @@ class GameBoard(tk.Frame):
                     emperorC = c1
         #check for empty squares adjacent to the emperor
         #REFACTOR WITH SCHOLAR
+        moves = set()
         for rVal in range(-1, 2):
             for cVal in range(-1, 2):
                 if rVal == 0 and cVal == 0: continue
                 if self.isOnBoard(emperorR + rVal, emperorC + cVal):
                     if self.matrix[emperorR + rVal][emperorC + cVal] == '-':
-                        self.allowedMoves.add((emperorR+rVal, emperorC+cVal))
+                        moves.add((emperorR+rVal, emperorC+cVal))
+
+        return moves
 
     def calcDiagonalMoves(self, r, c, distance):
         pieceColor = self.matrix[r][c][0]
         enemyColor = 'w' if pieceColor == 'b' else 'b'
+        moves = set()
         #REFACTOR
         for i in range(1, distance + 1): #up left
             rMove, cMove = r - i, c - i
             if self.isOnBoard(rMove, cMove):
                 if self.matrix[rMove][cMove][0] == enemyColor:
-                    self.allowedMoves.add((rMove, cMove))
+                    moves.add((rMove, cMove))
                     break
                 elif self.matrix[rMove][cMove][0] == pieceColor:
                     break
                 else:
-                    self.allowedMoves.add((rMove, cMove))
+                    moves.add((rMove, cMove))
         for i in range(1, distance + 1): #up right
             rMove, cMove = r - i, c + i
             if self.isOnBoard(rMove, cMove):
                 if self.matrix[rMove][cMove][0] == enemyColor:
-                    self.allowedMoves.add((rMove, cMove))
+                    moves.add((rMove, cMove))
                     break
                 elif self.matrix[rMove][cMove][0] == pieceColor:
                     break
                 else:
-                    self.allowedMoves.add((rMove, cMove))
+                    moves.add((rMove, cMove))
         for i in range(1, distance + 1): #down left
             rMove, cMove = r + i, c - i
             if self.isOnBoard(rMove, cMove):
                 if self.matrix[rMove][cMove][0] == enemyColor:
-                    self.allowedMoves.add((rMove, cMove))
+                    moves.add((rMove, cMove))
                     break
                 elif self.matrix[rMove][cMove][0] == pieceColor:
                     break
                 else:
-                    self.allowedMoves.add((rMove, cMove))
+                    moves.add((rMove, cMove))
         for i in range(1, distance + 1): #down right
             rMove, cMove = r + i, c + i
             if self.isOnBoard(rMove, cMove):
                 if self.matrix[rMove][cMove][0] == enemyColor:
-                    self.allowedMoves.add((rMove, cMove))
+                    moves.add((rMove, cMove))
                     break
                 elif self.matrix[rMove][cMove][0] == pieceColor:
                     break
                 else:
-                    self.allowedMoves.add((rMove, cMove))
+                    moves.add((rMove, cMove))
 
         #remove enemy protected square if it was listed as a possible move
-        
-        enemyProtectedSquare = self.whiteProtectedSquares if pieceColor == 'b' else self.blackProtectedSquares
-        print('enemyProtectedSquare', enemyProtectedSquare)
-        print(self.allowedMoves)
-        if enemyProtectedSquare in self.allowedMoves: self.allowedMoves.remove(enemyProtectedSquare)
+        enemyProtectedSquares = self.whiteProtectedSquares if pieceColor == 'b' else self.blackProtectedSquares
+        # print('enemyProtectedSquare', enemyProtectedSquares)
+        # print(self.allowedMoves)
+        for square in enemyProtectedSquares:
+            if square in moves: moves.remove(square)
+
+        return moves
 
     def calcHorizontalorVerticalMoves(self, r, c, distance):
         pieceColor = self.matrix[r][c][0]
         enemyColor = 'w' if pieceColor == 'b' else 'b'
+        moves = set()
         #REFACTOR
         for i in range(1, distance + 1): #moves to left
             if self.isOnBoard(r, c - i):
                 if self.matrix[r][c-i][0] == enemyColor:
-                    self.allowedMoves.add((r, c-i))
+                    moves.add((r, c-i))
                     break
                 elif self.matrix[r][c-i][0] == pieceColor:
                     break
                 else:
-                    self.allowedMoves.add((r, c-i))
+                    moves.add((r, c-i))
         for i in range(1, distance + 1): #moves to right
             if self.isOnBoard(r, c + i):
                 if self.matrix[r][c+i][0] == enemyColor:
-                    self.allowedMoves.add((r, c+i))
+                    moves.add((r, c+i))
                     break
                 elif self.matrix[r][c+i][0] == pieceColor:
                     break
                 else:
-                    self.allowedMoves.add((r, c+i))
+                    moves.add((r, c+i))
         for i in range(1, distance + 1): #moves down
             if self.isOnBoard(r + i, c):
                 if self.matrix[r+i][c][0] == enemyColor:
-                    self.allowedMoves.add((r+i, c))
+                    moves.add((r+i, c))
                     break
                 elif self.matrix[r+i][c][0] == pieceColor:
                     break
                 else:
-                    self.allowedMoves.add((r+i, c))
+                    moves.add((r+i, c))
         for i in range(1, distance + 1): #moves up
             if self.isOnBoard(r - i, c):
                 if self.matrix[r-i][c][0] == enemyColor:
-                    self.allowedMoves.add((r-i, c))
+                    moves.add((r-i, c))
                     break
                 elif self.matrix[r-i][c][0] == pieceColor:
                     break
                 else:
-                    self.allowedMoves.add((r-i, c))
+                    moves.add((r-i, c))
+        
+        # enemyProtectedSquare = self.whiteProtectedSquares if pieceColor == 'b' else self.blackProtectedSquares
+        # if enemyProtectedSquare in self.allowedMoves: self.allowedMoves.remove(enemyProtectedSquare)
+        enemyProtectedSquares = self.whiteProtectedSquares if pieceColor == 'b' else self.blackProtectedSquares
+        # print('enemyProtectedSquare', enemyProtectedSquares)
+        # print(self.allowedMoves)
+        for square in enemyProtectedSquares:
+            if square in moves: moves.remove(square)
 
-        enemyProtectedSquare = self.whiteProtectedSquares if pieceColor == 'b' else self.blackProtectedSquares
-        if enemyProtectedSquare in self.allowedMoves: self.allowedMoves.remove(enemyProtectedSquare)
+        return moves
 
     def isOnBoard(self, r, c):
         if r >= 0 and r < self.rows and c >= 0 and c < self.columns:
@@ -529,7 +539,7 @@ class GameBoard(tk.Frame):
                 y1 = (row * self.size)
                 x2 = x1 + self.size
                 y2 = y1 + self.size
-                if (row, col) == self.whiteProtectedSquares or (row, col) == self.blackProtectedSquares: #if protected square, color protected
+                if (row, col) in self.whiteProtectedSquares or (row, col) in self.blackProtectedSquares: #if protected square, color protected
                     self.canvas.create_rectangle(x1, y1, x2, y2, outline="black", fill=PROTECT_PIECE_COLOR, tags="square")
                 else: #else normal color
                     self.canvas.create_rectangle(x1, y1, x2, y2, outline="black", fill=color, tags="square")
