@@ -8,6 +8,7 @@ PIECE_SELECTED_COLOR = '#42e340'
 POSSIBLE_MOVE_COLOR = '#92c74e'
 KILL_PIECE_COLOR = '#f2463d'
 PROTECT_PIECE_COLOR = '#4ca6f5'
+EMPEROR_ATTACKED_COLOR = '#8b4df7'
 BASE_WIDTH = 771
 BASE_HEIGHT = 771
 BASE_SIDEWIDGET_WIDTH = 360
@@ -27,11 +28,11 @@ DEPLOY_BUTTON_TEXTS = {'E' : 'Place Emperor | 1 Remaining', 'G' : 'Place General
 #implement check mechanic?
 class GameBoard(tk.Frame):
     def __init__(self, parent, rows=10, columns=10, size=60, color1="#f9b46c", color2="#432d09"):
-        self.rows = rows
-        self.columns = columns
-        self.size = size
-        self.color1 = color1
-        self.color2 = color2
+        self.rows = 10
+        self.columns = 10
+        self.size = 60
+        self.color1 = "#f9b46c"
+        self.color2 = "#432d09"
         self.white_images = {}
         self.black_images = {}
         self.awaitingDeployClick = False
@@ -60,6 +61,8 @@ class GameBoard(tk.Frame):
         self.pieceToDeployFromThief = None
         self.awaitingThiefStealDeployment = None
         self.turnCount = 1
+        self.isGameOver = False
+        self.sideWidgetX = BASE_SIDEWIDGET_WIDTH
 
         tk.Frame.__init__(self, parent)
         
@@ -67,24 +70,27 @@ class GameBoard(tk.Frame):
         self.canvas.pack(side="left", fill="both", expand=True)
 
         self.sideWidgetCanvas = tk.Canvas(self, borderwidth = 0, highlightthickness = 0, width = BASE_SIDEWIDGET_WIDTH, height = BASE_HEIGHT, background = 'black')
-        self.textX = (columns * size) // 2
-        self.textY = (rows * size) // 2
-        self.sideWidgetCanvas.create_text(self.textX, self.textY, text='Welcome to Keschet!', fill='white', tag='sideWidgetText')
-
-        self.startButton = tk.Button(self.sideWidgetCanvas, text='Start Deployment', command=self.startDeploymentPhase)
-        self.startButton.configure(width=15,  activebackground = "#33B5E5", relief = 'flat')
-        self.sideWidgetCanvas.create_window(self.textX, self.textY + size, window=self.startButton)
-
-        self.quickDeployButton = tk.Button(self.sideWidgetCanvas, text='Quick Deploy', command=self.quickDeploy)
-        self.quickDeployButton.configure(width=15,  activebackground = "#33B5E5", relief = 'flat')
-        self.sideWidgetCanvas.create_window(self.textX, self.textY + size, window=self.quickDeployButton)
-        
-        self.sideWidgetCanvas.pack(side='right', fill='both', expand=True)
+        self.initSideCanvas()
 
         self.canvas.bind("<Configure>", self.refresh)
         self.canvas.bind('<Button 1>', self.getorigin)
         self.sideWidgetCanvas.bind("<Configure>", self.redrawSideWidget)
 
+    def initSideCanvas(self):
+        self.textX = self.sideWidgetX // 2 #(self.columns * self.size) // 2
+        self.textY = (self.rows * self.size) // 2
+        BOLD_FONT = font.Font(family='freemono', size=18, weight="bold")
+        self.sideWidgetCanvas.create_text(self.textX, self.size, font=BOLD_FONT, text='Welcome to Keschet!', fill='white', tag='sideWidgetText')
+
+        self.startButton = tk.Button(self.sideWidgetCanvas, text='Start Deployment', command=self.startDeploymentPhase)
+        self.startButton.configure(width=15,  activebackground = "#33B5E5", relief = 'flat')
+        self.sideWidgetCanvas.create_window(self.textX, self.size * 2, window=self.startButton)
+
+        self.quickDeployButton = tk.Button(self.sideWidgetCanvas, text='Quick Deploy', command=self.quickDeploy)
+        self.quickDeployButton.configure(width=15,  activebackground = "#33B5E5", relief = 'flat')
+        self.sideWidgetCanvas.create_window(self.textX, self.size * 3, window=self.quickDeployButton)
+        
+        self.sideWidgetCanvas.pack(side='right', fill='both', expand=True)
     def quickDeploy(self):
         widgets = self.sideWidgetCanvas.find_all()
         for widget in widgets:
@@ -94,7 +100,7 @@ class GameBoard(tk.Frame):
                        ['-', 'bM', 'bL', 'bA', '-', 'bA', 'bA', 'bM', 'bA', 'bL'],
                        ['bA', 'bP', 'bP', 'bP', 'bL', 'bL', 'bP', 'bP', 'bP', 'bA'],
                        ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
-                       ['-', '-', 'bP', 'bS', 'wS', 'bT', 'bT', '-', '-', '-'],
+                       ['-', '-', 'bP', '-', 'wS', 'bT', 'bT', '-', '-', '-'],
                        ['-', '-', '-', '-', '-', 'wT', '-', '-', '-', '-'],
                        ['-', '-', '-', 'wE', '-', '-', '-', '-', '-', '-'],
                        ['wA', 'wP', 'wP', 'wP', 'wL', 'wL', 'wP', 'wP', 'wP', 'wA'],
@@ -116,13 +122,15 @@ class GameBoard(tk.Frame):
         self.turnCountText = self.sideWidgetCanvas.create_text(self.textX, self.size, text=turnCountText, font=BOLD_FONT, fill='white', tag='turnCountText') 
 
     def startDeploymentPhase(self):
+        print('starting deploy phase')
         self.startButton.destroy()
         self.quickDeployButton.destroy()
         self.sideWidgetCanvas.delete('sideWidgetText')
 
-        self.sideWidgetCanvas.create_text(self.textX, self.size, text='Deploy Pieces', fill='white', tag='sideWidgetText')
+        BOLD_FONT = font.Font(family='freemono', size=18, weight="bold")
+        self.sideWidgetCanvas.create_text(self.textX, self.size, text='Deploy Pieces', font=BOLD_FONT, fill='white', tag='sideWidgetText')
         turnText = 'Player ' + str(self.turn) + '\'s Turn' 
-        self.playersTurnTextID = self.sideWidgetCanvas.create_text(self.textX, self.size*2, text=turnText, fill='white', tag='playersTurnTextID')
+        self.playersTurnTextID = self.sideWidgetCanvas.create_text(self.textX, self.size*2, text=turnText,font=BOLD_FONT, fill='white', tag='playersTurnTextID')
 
         self.createDeployButton('E', 3)
         self.createDeployButton('P', 3.75)
@@ -173,11 +181,24 @@ class GameBoard(tk.Frame):
                 curPieces[self.deployingPieceType] += 1
             self.turn = 2 if self.turn == 1 else 1
 
+            piecesDeployed = 0
+            for r1 in range(0, self.rows):
+                for c1 in range(0, self.columns):
+                    if self.matrix[r1][c1][0] == 'b': piecesDeployed += 1
+            if piecesDeployed == 26:
+                self.awaitingDeployClick = False
+                widgets = self.sideWidgetCanvas.find_all()
+                for widget in widgets:
+                    self.sideWidgetCanvas.delete(widget)
+                self.redrawBoard()
+                self.beginPlay()
+                return
+
             turnText = 'Player ' + str(self.turn) + '\'s Turn' 
             self.sideWidgetCanvas.itemconfigure(self.playersTurnTextID, text=turnText)
-            self.turnCount += 1
-            turnCountText = 'Turn ' + str(self.turnCount)
-            self.sideWidgetCanvas.itemconfigure(self.turnCountText, text=turnCountText)
+            # self.turnCount += 1
+            # turnCountText = 'Turn ' + str(self.turnCount)
+            # self.sideWidgetCanvas.itemconfigure(self.turnCountText, text=turnCountText)
 
             self.updateDeployButton('E')
             self.updateDeployButton('P')
@@ -187,11 +208,12 @@ class GameBoard(tk.Frame):
             self.updateDeployButton('G')
             self.updateDeployButton('S')
             self.updateDeployButton('T')
+            print('here')
             self.awaitingDeployClick = False
             self.redrawBoard()
         
         #move click
-        if self.playPhaseStarted:
+        if self.playPhaseStarted and not self.isGameOver:
             print(r, c)
             pieceColor = 'w' if self.turn == 1 else 'b'
             if self.awaitingThiefStealDeployment: #piece from thief capture is being deployed #REFACTOR
@@ -250,6 +272,11 @@ class GameBoard(tk.Frame):
                     self.redrawBoard()
 
                 #move was made, clear the selected piece
+                self.checkGameOver()
+                if self.isGameOver:
+                    self.handleGameOver()
+                    return
+                self.colorEmpPurpleIfAttacked()
                 self.pieceToMove = None
                 self.allowedMoves.clear()
             elif self.matrix[r][c][0] == pieceColor: #selected a piece of your color, calculate moves and draw board with moves
@@ -257,72 +284,166 @@ class GameBoard(tk.Frame):
                     self.pieceToMove = None
                     self.allowedMoves.clear()
                     self.redrawBoard()
+                    self.colorEmpPurpleIfAttacked()
                     return
                 self.pieceToMove = (r, c)
                 self.allowedMoves.clear()
                 self.allowedMoves = self.calcAllowedMoves(r, c)
                 self.redrawBoard()
                 self.colorPieceAndPossibleMoves(r, c)
+                self.colorEmpPurpleIfAttacked()
 
-    def calcAllowedMoves(self, r, c):
+    def handleGameOver(self):
+        widgets = self.sideWidgetCanvas.find_all()
+        for widget in widgets:
+            self.sideWidgetCanvas.delete(widget)
+        
+        BOLD_FONT = font.Font(family='freemono', size=18, weight="bold")
+        winText = 'White was victorious!' if self.turn == 2 else 'Black was victorious!' 
+        self.winText = self.sideWidgetCanvas.create_text(self.textX, self.size, text=winText, font=BOLD_FONT, fill='white', tag='turnCountText') 
+
+        self.startButton = tk.Button(self.sideWidgetCanvas, text='Back To Menu', command=self.restartGameHelper)
+        self.startButton.configure(width=15,  activebackground = "#33B5E5", relief = 'flat')
+        self.sideWidgetCanvas.create_window(self.textX, self.size * 2, window=self.startButton)
+
+    def restartGameHelper(self):
+        self.restartGame()
+        self.initSideCanvas()
+
+    def restartGame(self):
+        print('restart the gamemmeme')
+        widgets = self.sideWidgetCanvas.find_all()
+        for widget in widgets:
+            self.sideWidgetCanvas.delete(widget)
+
+        widgets = self.canvas.find_withtag('piece')
+        for widget in widgets:
+            self.canvas.delete(widget)
+
+        self.resetGameBoard()
+        # self.canvas.pack_forget()
+        # self.sideWidgetCanvas.pack_forget()
+        # self.canvas = tk.Canvas(self, borderwidth = 0, highlightthickness = 0, width = BASE_WIDTH, height = BASE_HEIGHT, background = 'grey')
+        # self.canvas.pack(side="left", fill="both", expand=True)
+        
+        # self.sideWidgetCanvas = tk.Canvas(self, borderwidth = 0, highlightthickness = 0, width = BASE_SIDEWIDGET_WIDTH, height = BASE_HEIGHT, background = 'black')
+        
+        # self.initSideCanvas()
+        # self.canvas.event_generate("<Configure>")
+        #fix side widget text wrong on game reset        
+
+
+        # self.refresh()
+
+    def resetGameBoard(self):
+        self.awaitingDeployClick = False
+        self.playPhaseStarted = False
+        self.pieceToMove = None
+        self.turn = 1
+        self.deployingPieceType = None
+        self.matrix = [['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
+                       ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
+                       ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
+                       ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
+                       ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
+                       ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
+                       ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
+                       ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
+                       ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
+                       ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-']]
+        self.white_pieces = {}
+        self.black_pieces = {}
+        self.deployButtons = {}
+        self.allowedMoves = set()
+        self.whiteProtectedSquares = set()
+        self.blackProtectedSquares = set()
+        self.pieceToDeployFromThief = None
+        self.awaitingThiefStealDeployment = None
+        self.turnCount = 1
+        self.isGameOver = False
+
+    def checkGameOver(self):
+        print('checking if game over')
+        wEmpFound = False
+        bEmpFound = False
+        for r1 in range(0, self.rows):
+            for c1 in range(0, self.columns):
+                if self.matrix[r1][c1] == 'wE': wEmpFound = True
+                if self.matrix[r1][c1] == 'bE': bEmpFound = True
+
+        if not wEmpFound or not bEmpFound:
+            self.isGameOver = True
+            return True
+        return False
+
+    def colorEmpPurpleIfAttacked(self):
+        pieceColor = 'w' if self.turn == 1 else 'b'
+        #find the emperor of the current team
+        for r1 in range(0, self.rows):
+            for c1 in range(0, self.columns):
+                if self.matrix[r1][c1] == pieceColor + 'E':
+                    emperorR = r1
+                    emperorC = c1
+        
+        attackedSquares = self.calcSquaresThatEnemyAttacksOrDefends()
+        if (emperorR, emperorC) in attackedSquares:
+            squares = self.canvas.find_withtag('square')
+            for square in squares:
+                coords = self.canvas.coords(square)
+                r = int(coords[1] // self.size)
+                c = int(coords[0] // self.size)
+                if r == emperorR and c == emperorC:
+                    self.canvas.itemconfigure(square, fill=EMPEROR_ATTACKED_COLOR)
+
+    def calcAllowedMoves(self, r, c, defended=False): #defended = True will also return squares that piece is defending 
+        #(allied squares it could move to if that allied piece was attacked)
         pieceType = self.matrix[r][c][1]
         if pieceType == 'P':
-            return self.calcHorizontalorVerticalMoves(r, c, 2)
+            return self.calcHorizontalorVerticalMoves(r, c, 2, defended)
         elif pieceType == 'A':
-            return self.calcHorizontalorVerticalMoves(r, c, 6)
+            return self.calcHorizontalorVerticalMoves(r, c, 6, defended)
         elif pieceType == 'G':
-            rcMoves = self.calcHorizontalorVerticalMoves(r, c, 9)
-            diagMoves = self.calcDiagonalMoves(r, c, 9)
+            rcMoves = self.calcHorizontalorVerticalMoves(r, c, 9, defended)
+            diagMoves = self.calcDiagonalMoves(r, c, 9, defended)
             return rcMoves.union(diagMoves)
         elif pieceType == 'L':
-            return self.calcDiagonalMoves(r, c, 9)
+            return self.calcDiagonalMoves(r, c, 9, defended)
         elif pieceType == 'M':
-            rcMoves = self.calcHorizontalorVerticalMoves(r, c, 2)
-            diagMoves = self.calcDiagonalMoves(r, c, 2)
+            rcMoves = self.calcHorizontalorVerticalMoves(r, c, 2, defended)
+            diagMoves = self.calcDiagonalMoves(r, c, 2, defended)
             tpMoves = self.checkEmperorTeleportMoves(r, c)
             return tpMoves.union(rcMoves.union(diagMoves))
         elif pieceType == 'S':
-            rcMoves = self.calcHorizontalorVerticalMoves(r, c, 2)
-            diagMoves = self.calcDiagonalMoves(r, c, 2)
+            rcMoves = self.calcHorizontalorVerticalMoves(r, c, 2, defended)
+            diagMoves = self.calcDiagonalMoves(r, c, 2, defended)
             spMoves = self.calcScholarProtectMoves(r, c)
             return spMoves.union(rcMoves.union(diagMoves))
         elif pieceType == 'T':
-            rcMoves = self.calcHorizontalorVerticalMoves(r, c, 1)
-            diagMoves = self.calcDiagonalMoves(r, c, 1)
+            rcMoves = self.calcHorizontalorVerticalMoves(r, c, 1, defended)
+            diagMoves = self.calcDiagonalMoves(r, c, 1, defended)
             return rcMoves.union(diagMoves)
         elif pieceType == 'E':
-            rcMoves = self.calcHorizontalorVerticalMoves(r, c, 1)
-            diagMoves = self.calcDiagonalMoves(r, c, 1)
-            return rcMoves.union(diagMoves)
-            # return self.calcEmperorMoves(r, c)
-            #calc so emperor cannot put itself into line of fire - max recursion depth, need to calc allied protections
+            return self.calcEmperorMoves(r, c, defended)
 
-    # def calcEmperorMoves(self, r, c):
-    #     rcMoves = self.calcHorizontalorVerticalMoves(r, c, 1)
-    #     diagMoves = self.calcDiagonalMoves(r, c, 1)
-    #     possibleEmperorMoves = rcMoves.union(diagMoves)
-    #     for move in possibleEmperorMoves:
-    #         rMove, cMove = move[0], move[1]
-    #         temp = self.matrix[rMove][cMove]
-    #         emperor = self.matrix[r][c]
-    #         self.matrix[rMove][cMove] = self.matrix[r][c]
-    #         self.matrix[r][c] = '-'
-    #         attackedSquares = self.calcSquaresThatEnemyAttacks()
-    #         possibleEmperorMoves.difference(attackedSquares)
-    #         self.matrix[rMove][cMove] = temp
-    #         self.matrix[r][c] = emperor
+    def calcEmperorMoves(self, r, c, defended):
+        rcMoves = self.calcHorizontalorVerticalMoves(r, c, 1, defended)
+        diagMoves = self.calcDiagonalMoves(r, c, 1, defended)
+        possibleEmperorMoves = rcMoves.union(diagMoves)
+        t = self.matrix[r][c]
+        self.matrix[r][c] = '-'
+        attackedOrDefendedSquares = self.calcSquaresThatEnemyAttacksOrDefends()
+        self.matrix[r][c] = t
+        return possibleEmperorMoves.difference(attackedOrDefendedSquares)
 
-    #     return possibleEmperorMoves
-
-    # def calcSquaresThatEnemyAttacks(self): #change to attacks or defends
-    #     squares = set()
-    #     enemyColor = 'b' if self.turn == 1 else 'w'
-    #     for r1 in range(0, self.rows):
-    #         for c1 in range(0, self.columns):
-    #             if self.matrix[r1][c1][0] == enemyColor:
-    #                 moves = self.calcAllowedMoves(r1, c1)
-    #                 squares.union(moves)
-    #     return squares
+    def calcSquaresThatEnemyAttacksOrDefends(self): #change to attacks or defends
+        squares = set()
+        enemyColor = 'b' if self.turn == 1 else 'w'
+        for r1 in range(0, self.rows):
+            for c1 in range(0, self.columns):
+                if self.matrix[r1][c1][0] == enemyColor and self.matrix[r1][c1][1] != 'E':
+                    moves = self.calcAllowedMoves(r1, c1, True)
+                    squares = squares.union(moves)
+        return squares
 
     def calcScholarProtectMoves(self, r, c):
         pieceColor = self.matrix[r][c][0]
@@ -357,7 +478,7 @@ class GameBoard(tk.Frame):
 
         return moves
 
-    def calcDiagonalMoves(self, r, c, distance):
+    def calcDiagonalMoves(self, r, c, distance, addDefendingMoves):
         pieceColor = self.matrix[r][c][0]
         enemyColor = 'w' if pieceColor == 'b' else 'b'
         moves = set()
@@ -369,6 +490,8 @@ class GameBoard(tk.Frame):
                     moves.add((rMove, cMove))
                     break
                 elif self.matrix[rMove][cMove][0] == pieceColor:
+                    if addDefendingMoves:
+                        moves.add((rMove, cMove))
                     break
                 else:
                     moves.add((rMove, cMove))
@@ -379,6 +502,8 @@ class GameBoard(tk.Frame):
                     moves.add((rMove, cMove))
                     break
                 elif self.matrix[rMove][cMove][0] == pieceColor:
+                    if addDefendingMoves:
+                        moves.add((rMove, cMove))
                     break
                 else:
                     moves.add((rMove, cMove))
@@ -389,6 +514,8 @@ class GameBoard(tk.Frame):
                     moves.add((rMove, cMove))
                     break
                 elif self.matrix[rMove][cMove][0] == pieceColor:
+                    if addDefendingMoves:
+                        moves.add((rMove, cMove))
                     break
                 else:
                     moves.add((rMove, cMove))
@@ -399,6 +526,8 @@ class GameBoard(tk.Frame):
                     moves.add((rMove, cMove))
                     break
                 elif self.matrix[rMove][cMove][0] == pieceColor:
+                    if addDefendingMoves:
+                        moves.add((rMove, cMove))
                     break
                 else:
                     moves.add((rMove, cMove))
@@ -412,7 +541,7 @@ class GameBoard(tk.Frame):
 
         return moves
 
-    def calcHorizontalorVerticalMoves(self, r, c, distance):
+    def calcHorizontalorVerticalMoves(self, r, c, distance, addDefendingMoves):
         pieceColor = self.matrix[r][c][0]
         enemyColor = 'w' if pieceColor == 'b' else 'b'
         moves = set()
@@ -423,6 +552,8 @@ class GameBoard(tk.Frame):
                     moves.add((r, c-i))
                     break
                 elif self.matrix[r][c-i][0] == pieceColor:
+                    if addDefendingMoves:
+                        moves.add((r, c-i))
                     break
                 else:
                     moves.add((r, c-i))
@@ -432,6 +563,8 @@ class GameBoard(tk.Frame):
                     moves.add((r, c+i))
                     break
                 elif self.matrix[r][c+i][0] == pieceColor:
+                    if addDefendingMoves:
+                        moves.add((r, c+i))
                     break
                 else:
                     moves.add((r, c+i))
@@ -441,6 +574,8 @@ class GameBoard(tk.Frame):
                     moves.add((r+i, c))
                     break
                 elif self.matrix[r+i][c][0] == pieceColor:
+                    if addDefendingMoves:
+                        moves.add((r+i, c))
                     break
                 else:
                     moves.add((r+i, c))
@@ -450,6 +585,8 @@ class GameBoard(tk.Frame):
                     moves.add((r-i, c))
                     break
                 elif self.matrix[r-i][c][0] == pieceColor:
+                    if addDefendingMoves:
+                        moves.add((r-i, c))
                     break
                 else:
                     moves.add((r-i, c))
@@ -552,11 +689,11 @@ class GameBoard(tk.Frame):
         self.canvas.tag_raise("piece")
         self.canvas.tag_lower("square")
         
-    def refresh(self, event):
+    def refresh(self, event=None):
         '''Redraw the board, possibly in response to window being resized'''
         print(event.width, event.height)
-        xsize = int((event.width-1) / self.columns)
-        ysize = int((event.height-1) / self.rows)
+        xsize = int((event.width-1) / self.columns) #if event else int((BASE_WIDTH-1) / self.columns)
+        ysize = int((event.height-1) / self.rows) #if event else int((BASE_HEIGHT-1) / self.columns)
         self.size = min(xsize, ysize)
         self.redrawBoard()
         self.redrawPieces()
@@ -580,8 +717,10 @@ class GameBoard(tk.Frame):
         self.canvas.tag_raise("piece")
         self.canvas.tag_lower("square")
 
-    def redrawSideWidget(self, event):
-        self.textX = event.width // 2
+    def redrawSideWidget(self, event=None):
+        if event:
+            self.sideWidgetX = event.width
+        self.textX = event.width // 2 if event else BASE_SIDEWIDGET_WIDTH // 2
         self.textY = self.size #(self.rows * self.size) // 2
         sideWidgetItems = self.sideWidgetCanvas.find_all()
         curY = self.textY #- (self.size * 2)
