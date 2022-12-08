@@ -17,17 +17,10 @@ DEPLOY_BUTTON_TEXTS = {'E' : 'Place Emperor | 1 Remaining', 'G' : 'Place General
                        'S': 'Place Scholar | 1 Remaining', 'L' : 'Place Lancer | 4 Remaining' }
 
 #TODO:
-#clone a scholar
-#end game when emperor killed
-#color emperor purple when under attack
-#turn counter during movement phase
-#add start button when deployment phase finished
 #add move descriptions to before game start and during move phase
 #add board flip button to move phase
-#fix running out of spaces for thief deploy
-#implement check mechanic?
 class GameBoard(tk.Frame):
-    def __init__(self, parent, rows=10, columns=10, size=60, color1="#f9b46c", color2="#432d09"):
+    def __init__(self, parent):
         self.rows = 10
         self.columns = 10
         self.size = 60
@@ -50,8 +43,6 @@ class GameBoard(tk.Frame):
                        ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
                        ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
                        ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-']]
-        self.mouseX = 0
-        self.mouseY = 0
         self.white_pieces = {}
         self.black_pieces = {}
         self.deployButtons = {}
@@ -65,6 +56,7 @@ class GameBoard(tk.Frame):
         self.sideWidgetX = BASE_SIDEWIDGET_WIDTH
 
         tk.Frame.__init__(self, parent)
+        self.BOLD_FONT = font.Font(family='freemono', size=18, weight="bold")
         
         self.canvas = tk.Canvas(self, borderwidth = 0, highlightthickness = 0, width = BASE_WIDTH, height = BASE_HEIGHT, background = 'grey')
         self.canvas.pack(side="left", fill="both", expand=True)
@@ -79,8 +71,8 @@ class GameBoard(tk.Frame):
     def initSideCanvas(self):
         self.textX = self.sideWidgetX // 2 #(self.columns * self.size) // 2
         self.textY = (self.rows * self.size) // 2
-        BOLD_FONT = font.Font(family='freemono', size=18, weight="bold")
-        self.sideWidgetCanvas.create_text(self.textX, self.size, font=BOLD_FONT, text='Welcome to Keschet!', fill='white', tag='sideWidgetText')
+        # BOLD_FONT = font.Font(family='freemono', size=18, weight="bold")
+        self.sideWidgetCanvas.create_text(self.textX, self.size, font=self.BOLD_FONT, text='Welcome to Keschet!', fill='white', tag='sideWidgetText')
 
         self.startButton = tk.Button(self.sideWidgetCanvas, text='Start Deployment', command=self.startDeploymentPhase)
         self.startButton.configure(width=15,  activebackground = "#33B5E5", relief = 'flat')
@@ -100,12 +92,12 @@ class GameBoard(tk.Frame):
                        ['-', 'bM', 'bL', 'bA', '-', 'bA', 'bA', 'bM', 'bA', 'bL'],
                        ['bA', 'bP', 'bP', 'bP', 'bL', 'bL', 'bP', 'bP', 'bP', 'bA'],
                        ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
-                       ['-', '-', 'bP', '-', 'wS', 'bT', 'bT', '-', '-', '-'],
-                       ['-', '-', '-', '-', '-', 'wT', '-', '-', '-', '-'],
-                       ['-', '-', '-', 'wE', '-', '-', '-', '-', '-', '-'],
+                       ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
+                       ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
+                       ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
                        ['wA', 'wP', 'wP', 'wP', 'wL', 'wL', 'wP', 'wP', 'wP', 'wA'],
                        ['wL', 'wA', 'wM', 'wA', 'wA', '-', 'wA', 'wL', 'wM', '-'],
-                       ['wT', 'wP', 'wP', '-', 'wT', 'wS', 'wG', '-', 'wT', '-']]
+                       ['wT', 'wP', 'wP', '-', 'wT', 'wS', 'wG', 'wE', 'wT', '-']]
         
         self.redrawPieces()
         #move to begin play + player turn + turn counter + move descriptions 
@@ -115,11 +107,11 @@ class GameBoard(tk.Frame):
     def beginPlay(self):
         self.playPhaseStarted = True
         self.turn = 1
-        BOLD_FONT = font.Font(family='freemono', size=18, weight="bold")
+        # BOLD_FONT = font.Font(family='freemono', size=18, weight="bold")
         turnText = 'White To Move' 
-        self.playersTurnTextID = self.sideWidgetCanvas.create_text(self.textX, self.size*2, text=turnText, font=BOLD_FONT, fill='white', tag='playersTurnTextID')        
+        self.playersTurnTextID = self.sideWidgetCanvas.create_text(self.textX, self.size*2, text=turnText, font=self.BOLD_FONT, fill='white', tag='playersTurnTextID')        
         turnCountText = 'Turn 1' 
-        self.turnCountText = self.sideWidgetCanvas.create_text(self.textX, self.size, text=turnCountText, font=BOLD_FONT, fill='white', tag='turnCountText') 
+        self.turnCountText = self.sideWidgetCanvas.create_text(self.textX, self.size, text=turnCountText, font=self.BOLD_FONT, fill='white', tag='turnCountText') 
 
     def startDeploymentPhase(self):
         print('starting deploy phase')
@@ -127,10 +119,10 @@ class GameBoard(tk.Frame):
         self.quickDeployButton.destroy()
         self.sideWidgetCanvas.delete('sideWidgetText')
 
-        BOLD_FONT = font.Font(family='freemono', size=18, weight="bold")
-        self.sideWidgetCanvas.create_text(self.textX, self.size, text='Deploy Pieces', font=BOLD_FONT, fill='white', tag='sideWidgetText')
+        # BOLD_FONT = font.Font(family='freemono', size=18, weight="bold")
+        self.sideWidgetCanvas.create_text(self.textX, self.size, text='Deploy Pieces', font=self.BOLD_FONT, fill='white', tag='sideWidgetText')
         turnText = 'Player ' + str(self.turn) + '\'s Turn' 
-        self.playersTurnTextID = self.sideWidgetCanvas.create_text(self.textX, self.size*2, text=turnText,font=BOLD_FONT, fill='white', tag='playersTurnTextID')
+        self.playersTurnTextID = self.sideWidgetCanvas.create_text(self.textX, self.size*2, text=turnText,font=self.BOLD_FONT, fill='white', tag='playersTurnTextID')
 
         self.createDeployButton('E', 3)
         self.createDeployButton('P', 3.75)
@@ -298,9 +290,9 @@ class GameBoard(tk.Frame):
         for widget in widgets:
             self.sideWidgetCanvas.delete(widget)
         
-        BOLD_FONT = font.Font(family='freemono', size=18, weight="bold")
+        # BOLD_FONT = font.Font(family='freemono', size=18, weight="bold")
         winText = 'White was victorious!' if self.turn == 2 else 'Black was victorious!' 
-        self.winText = self.sideWidgetCanvas.create_text(self.textX, self.size, text=winText, font=BOLD_FONT, fill='white', tag='turnCountText') 
+        self.winText = self.sideWidgetCanvas.create_text(self.textX, self.size, text=winText, font=self.BOLD_FONT, fill='white', tag='turnCountText') 
 
         self.startButton = tk.Button(self.sideWidgetCanvas, text='Back To Menu', command=self.restartGameHelper)
         self.startButton.configure(width=15,  activebackground = "#33B5E5", relief = 'flat')
@@ -363,7 +355,7 @@ class GameBoard(tk.Frame):
         self.isGameOver = False
 
     def checkGameOver(self):
-        print('checking if game over')
+        # print('checking if game over')
         wEmpFound = False
         bEmpFound = False
         for r1 in range(0, self.rows):
@@ -447,7 +439,6 @@ class GameBoard(tk.Frame):
 
     def calcScholarProtectMoves(self, r, c):
         pieceColor = self.matrix[r][c][0]
-        #REFACTOR WITH EMPEROR
         moves = set()
         protectedSquares = self.whiteProtectedSquares if pieceColor == 'w' else self.blackProtectedSquares
         for rVal in range(-1, 2):
@@ -467,7 +458,6 @@ class GameBoard(tk.Frame):
                     emperorR = r1
                     emperorC = c1
         #check for empty squares adjacent to the emperor
-        #REFACTOR WITH SCHOLAR
         moves = set()
         for rVal in range(-1, 2):
             for cVal in range(-1, 2):
@@ -475,7 +465,6 @@ class GameBoard(tk.Frame):
                 if self.isOnBoard(emperorR + rVal, emperorC + cVal):
                     if self.matrix[emperorR + rVal][emperorC + cVal] == '-':
                         moves.add((emperorR+rVal, emperorC+cVal))
-
         return moves
 
     def calcDiagonalMoves(self, r, c, distance, addDefendingMoves):
@@ -532,10 +521,7 @@ class GameBoard(tk.Frame):
                 else:
                     moves.add((rMove, cMove))
 
-        #remove enemy protected square if it was listed as a possible move
         enemyProtectedSquares = self.whiteProtectedSquares if pieceColor == 'b' else self.blackProtectedSquares
-        # print('enemyProtectedSquare', enemyProtectedSquares)
-        # print(self.allowedMoves)
         for square in enemyProtectedSquares:
             if square in moves: moves.remove(square)
 
