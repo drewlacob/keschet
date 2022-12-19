@@ -15,8 +15,7 @@ class engine():
             self.matrix[r][c] = ('w' + self.deployingPieceType) if self.turn == 1 else ('b' + self.deployingPieceType) #update the board with the deployment
             x0, y0 = (c * self.size) + int(self.size/2), (r * self.size) + int(self.size/2) #find position to place image
             imageIdentifier = self.deployingPieceType + '.png'
-            images = self.gameBoard.white_images if self.turn == 1 else self.gameBoard.black_images
-            self.gameBoard.canvas.create_image(x0, y0, image = images[imageIdentifier], tags=(self.matrix[r][c], 'piece'))
+            self.gameBoard.placePiece(x0, y0, imageIdentifier)
 
             #increment our count of how many of this piece type have been deployed
             curPieces = self.white_pieces if self.turn == 1 else self.black_pieces
