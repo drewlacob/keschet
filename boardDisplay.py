@@ -26,9 +26,9 @@ class boardDisplay(tk.Frame):
             coords = self.canvas.coords(square)
             r = int(coords[1] // self.size)
             c = int(coords[0] // self.size)
-            if self.gameEngine.turn == 1 and r >= 7 and self.gameEngine.matrix[r][c] == '-':
+            if self.gameEngine.turnCount % 2 == 1 and r >= 7 and self.gameEngine.matrix[r][c] == '-':
                 self.canvas.itemconfigure(square, fill=POSSIBLE_MOVE_COLOR)
-            if self.gameEngine.turn == 2 and r <= 2 and self.gameEngine.matrix[r][c] == '-':
+            if self.gameEngine.turnCount % 2 == 0 and r <= 2 and self.gameEngine.matrix[r][c] == '-':
                 self.canvas.itemconfigure(square, fill=POSSIBLE_MOVE_COLOR)
 
     def getorigin(self, eventorigin):
@@ -43,7 +43,7 @@ class boardDisplay(tk.Frame):
             self.canvas.delete(widget)
 
     def colorEmpPurpleIfAttacked(self):
-        pieceColor = 'w' if self.gameEngine.turn == 1 else 'b'
+        pieceColor = 'w' if self.gameEngine.turnCount % 2 == 1 else 'b'
         for r1 in range(0, self.rows):
             for c1 in range(0, self.columns):
                 if self.gameEngine.matrix[r1][c1] == pieceColor + 'E':
@@ -84,9 +84,9 @@ class boardDisplay(tk.Frame):
         for row in range(self.rows):
             color = BOARD_ONE_COLOR if color == BOARD_TWO_COLOR else BOARD_TWO_COLOR
             if self.gameEngine.awaitingDeployClick:
-                if self.gameEngine.turn == 1 and row >= 7:
+                if self.gameEngine.turnCount % 2 == 1 and row >= 7:
                     color = POSSIBLE_MOVE_COLOR
-                elif self.gameEngine.turn == 2 and row <= 2:
+                elif self.gameEngine.turnCount % 2 == 0 and row <= 2:
                     color = POSSIBLE_MOVE_COLOR
             for col in range(self.columns):
                 x1 = (col * self.size)
@@ -99,9 +99,9 @@ class boardDisplay(tk.Frame):
                     self.canvas.create_rectangle(x1, y1, x2, y2, outline="black", fill=color, tags="square")
                 color = BOARD_ONE_COLOR if color == BOARD_TWO_COLOR else BOARD_TWO_COLOR
                 if self.gameEngine.awaitingDeployClick:
-                    if self.gameEngine.turn == 1 and row >= 7:
+                    if self.gameEngine.turnCount % 2 == 1 and row >= 7:
                         color = POSSIBLE_MOVE_COLOR
-                    elif self.gameEngine.turn == 2 and row <= 2:
+                    elif self.gameEngine.turnCount % 2 == 0 and row <= 2:
                         color = POSSIBLE_MOVE_COLOR
         self.canvas.tag_raise("piece")
         self.canvas.tag_lower("square")
@@ -159,5 +159,5 @@ class boardDisplay(tk.Frame):
         return self.black_images['G.png']
 
     def placePiece(self, x0, y0, image):
-        images = self.white_images if self.gameEngine.turn == 1 else self.black_images
+        images = self.white_images if self.gameEngine.turnCount % 2 == 1 else self.black_images
         self.canvas.create_image(x0, y0, image = images[image], tags=('piece'))

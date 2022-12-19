@@ -33,7 +33,7 @@ class GameBoard(tk.Frame):
 
     def beginPlay(self):
         self.gameEngine.playPhaseStarted = True
-        self.gameEngine.turn = 1
+        self.gameEngine.turnCount = 1
         self.sideWidget.startPlayPhase()
     
     def placePieceHelper(self, pieceType):

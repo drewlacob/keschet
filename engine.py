@@ -10,21 +10,22 @@ class engine():
 
     def handleClick(self, r: int, c: int) -> None:
         if self.awaitingDeployClick: #handle deployment click to board once piece selected
-            if self.matrix[r][c] != '-' or (self.turn == 1 and r < 7) or (self.turn == 2 and r > 2): #if square occupied or outside of deployment bounds
+            if self.matrix[r][c] != '-' or (self.turnCount % 2 == 1 and r < 7) or (self.turnCount % 2 == 0 and r > 2): #if square occupied or outside of deployment bounds
                 return
-            self.matrix[r][c] = ('w' + self.deployingPieceType) if self.turn == 1 else ('b' + self.deployingPieceType) #update the board with the deployment
+            self.matrix[r][c] = ('w' + self.deployingPieceType) if self.turnCount % 2 == 1 else ('b' + self.deployingPieceType) #update the board with the deployment
             x0, y0 = (c * self.size) + int(self.size/2), (r * self.size) + int(self.size/2) #find position to place image
             imageIdentifier = self.deployingPieceType + '.png'
             self.gameBoard.placePiece(x0, y0, imageIdentifier)
 
             #increment our count of how many of this piece type have been deployed
-            curPieces = self.white_pieces if self.turn == 1 else self.black_pieces
+            curPieces = self.white_pieces if self.turnCount % 2 == 1 else self.black_pieces
             if self.deployingPieceType not in curPieces:
                 curPieces[self.deployingPieceType] = 1
             else:
                 curPieces[self.deployingPieceType] += 1
 
-            self.turn = 2 if self.turn == 1 else 1
+            # self.turn = 2 if self.turn == 1 else 1
+            self.turnCount += 1
 
             piecesDeployed = 0 #count how many black pieces are deployed since they are second to place
             for piece in self.black_pieces:
@@ -46,28 +47,28 @@ class engine():
         
         #handle click during play phase: piece selection, moving pieces, deploying pieces from thief capture
         if self.playPhaseStarted and not self.isGameOver:
-            pieceColor = 'w' if self.turn == 1 else 'b'
+            pieceColor = 'w' if self.turnCount % 2 == 1 else 'b'
             if self.awaitingThiefStealDeployment: #piece from thief capture is being deployed
-                if (self.turn == 1 and r >= 7 and self.matrix[r][c] == '-') or (self.turn == 2 and r <= 2 and self.matrix[r][c] == '-'):
+                if (self.turnCount % 2 == 1 and r >= 7 and self.matrix[r][c] == '-') or (self.turnCount % 2 == 0 and r <= 2 and self.matrix[r][c] == '-'):
                     self.matrix[r][c] = self.awaitingThiefStealDeployment
                     self.awaitingThiefStealDeployment = None
                     self.gameBoard.redrawPieces()
                     self.gameBoard.redrawBoard()
-                    self.turn = 1 if self.turn == 2 else 2
-                    self.gameBoard.sideWidget.updateAfterDeploy()
+                    self.turnCount += 1
+                    self.gameBoard.sideWidget.updateTurnDisplay()
 
             #handle normal move during play phase
             elif self.pieceToMove and (r, c) in self.allowedMoves: #if a piece is currently selected and the new selection is a place to move
                 selectedPiece = self.matrix[self.pieceToMove[0]][self.pieceToMove[1]]
 
                 #if scholar is being moved or piece moves out of protection, then remove protection from square
-                myProtectedSquares = self.whiteProtectedSquares if self.turn == 1 else self.blackProtectedSquares
+                myProtectedSquares = self.whiteProtectedSquares if self.turnCount % 2 == 1 else self.blackProtectedSquares
                 if selectedPiece[1] == 'S' or (self.pieceToMove[0], self.pieceToMove[1]) in myProtectedSquares:
                     myProtectedSquares.clear()
                 
                 #if killing enemy scholar, remove that scholars protected square
                 enemyColor = 'b' if pieceColor == 'w' else 'w'
-                enemyProtectedSquares = self.blackProtectedSquares if self.turn == 1 else self.whiteProtectedSquares
+                enemyProtectedSquares = self.blackProtectedSquares if self.turnCount % 2 == 1 else self.whiteProtectedSquares
                 if self.matrix[r][c] == enemyColor + 'S': 
                     enemyProtectedSquares.clear()
 
@@ -88,7 +89,7 @@ class engine():
 
                 #update turn text
                 if not self.awaitingThiefStealDeployment: #REFACTOR: make the following display updates into a function
-                    self.turn = 2 if self.turn == 1 else 1
+                    # self.turn = 2 if self.turn == 1 else 1
                     self.turnCount += 1
                     self.gameBoard.sideWidget.updateTurnDisplay()
 
@@ -164,7 +165,7 @@ class engine():
 
     def calcSquaresThatEnemyAttacksOrDefends(self) -> set(): #change to attacks or defends
         squares = set()
-        enemyColor = 'b' if self.turn == 1 else 'w'
+        enemyColor = 'w' if self.turnCount % 2 == 0 else 'b'
         #for each enemy piece, calculate its moves and add them to the set
         for r1 in range(0, self.rows):
             for c1 in range(0, self.columns):
@@ -361,6 +362,5 @@ class engine():
         self.blackProtectedSquares = set() #holds squares protected by the black team
         self.pieceToDeployFromThief = None #piece to deploy from thief steal #could be changed to use deployingPieceType
         self.awaitingThiefStealDeployment = None #let's handle click know we are awaiting deployment from a thief steal # could be changed to use awaiting deploy click?
-        self.turn = 1 #1 is player one's turn, 2 for player two's turn #could be moved to just use turnCount
-        self.turnCount = 1 #actual count of the turns that have passed during the play phase
+        self.turnCount = 1 #count of the turns that have passed during the play phase
         self.isGameOver = False
