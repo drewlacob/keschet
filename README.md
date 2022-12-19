@@ -70,5 +70,10 @@
 
 ### Demo
 
+#### Deployment Phase Demo
+
 ![keschet_fullgame_demo](https://raw.githubusercontent.com/drewlacob/keschet/master/keschetDeployment.gif)
+
+#### Quick Deploy and Play Phase Demo
+
 ![keschet_quickDeploy_demo](https://github.com/drewlacob/keschet/blob/master/keschetQuickDeploy.gif)
