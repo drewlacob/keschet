@@ -7,7 +7,7 @@ BASE_WIDTH = 771
 BASE_HEIGHT = 771
 BASE_SIDEWIDGET_WIDTH = 360 #starting width of the right sidewidget 
 DEPLOY_BUTTON_TEXTS = {'E' : 'Place Emperor | 1 Remaining', 'G' : 'Place General | 1 Remaining', 'M' : 'Place Merchant | 2 Remaining',
-                       'P' : 'Place Man-at-Arms | 8 Remaining', 'T' : 'Place Thief | 3 Remaining', 'A': 'Place Archer | 6 Remaining',
+                       'P' : 'Place Spearman | 8 Remaining', 'T' : 'Place Thief | 3 Remaining', 'A': 'Place Archer | 5 Remaining',
                        'S': 'Place Scholar | 1 Remaining', 'L' : 'Place Lancer | 4 Remaining' } #starting text for deployment buttons
 BOARD_ONE_COLOR = "#f9b46c" #square color for board
 BOARD_TWO_COLOR = "#432d09" #alternating square color

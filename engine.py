@@ -31,7 +31,7 @@ class engine():
             for piece in self.black_pieces:
                 piecesDeployed += self.black_pieces[piece]
 
-            if piecesDeployed == 2: #deploy phase has ended, clean up and begin play #TODO: change back to 26 <----------------------------
+            if piecesDeployed == 25: #deploy phase has ended, clean up and begin play
                 self.deployingPieceType = None
                 self.gameBoard.sideWidget.clear()
                 self.gameBoard.redrawBoard()
@@ -339,7 +339,19 @@ class engine():
             return True
         return False
 
-    def reset(self):
+    def setQuickDeployBoard(self) -> None:
+        self.matrix = [['-', 'bT', 'bE', 'bG', 'bS', 'bT', '-', 'bP', 'bP', 'bT'],
+                       ['-', 'bM', 'bL', 'bA', '-', 'bA', 'bA', 'bM', 'bA', 'bL'],
+                       ['bA', 'bP', 'bP', 'bP', 'bL', 'bL', 'bP', 'bP', 'bP', 'bA'],
+                       ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
+                       ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
+                       ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
+                       ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
+                       ['wA', 'wP', 'wP', 'wP', 'wL', 'wL', 'wP', 'wP', 'wP', 'wA'],
+                       ['wL', 'wA', 'wM', 'wA', 'wA', '-', 'wA', 'wL', 'wM', '-'],
+                       ['wT', 'wP', 'wP', '-', 'wT', 'wS', 'wG', 'wE', 'wT', '-']]
+
+    def reset(self) -> None:
         self.deployingPieceType = None #holds the piece waiting to be deployed
         self.playPhaseStarted = False
         self.matrix = [['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'], #initialize the game board to all empty squares

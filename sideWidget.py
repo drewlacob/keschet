@@ -26,20 +26,19 @@ class sideWidget(tk.Frame):
         self.sideWidgetCanvas.pack(side='right', fill='both', expand=True)
         self.sideWidgetCanvas.bind("<Configure>", self.redraw)
     
-    def startPlayPhase(self):
+    def startPlayPhase(self) -> None:
         self.clear()
         turnText = 'White To Move' 
         self.playersTurnTextID = self.sideWidgetCanvas.create_text(self.textX, self.size*2, text=turnText, font=self.BOLD_FONT, fill='white', tag='playersTurnTextID')        
         turnCountText = 'Turn 1' 
         self.turnCountText = self.sideWidgetCanvas.create_text(self.textX, self.size, text=turnCountText, font=self.BOLD_FONT, fill='white', tag='turnCountText')
 
-    def createDeployButton(self, pieceType, yPosition):
+    def createDeployButton(self, pieceType: str, yPosition: int) -> None:
         self.deployButtons[pieceType] = tk.Button(self.sideWidgetCanvas, text=DEPLOY_BUTTON_TEXTS[pieceType], command=lambda : self.gameBoard.placePieceHelper(pieceType))
         self.deployButtons[pieceType].configure(width=30,  activebackground = "#33B5E5", relief = 'flat')
         self.sideWidgetCanvas.create_window(self.textX, self.size*yPosition, window=self.deployButtons[pieceType])
 
-    def startDeploymentPhase(self):
-        print('starting deploy phase')
+    def startDeploymentPhase(self) -> None:
         self.startButton.destroy()
         self.quickDeployButton.destroy()
         self.sideWidgetCanvas.delete('sideWidgetText')
@@ -58,7 +57,7 @@ class sideWidget(tk.Frame):
         self.createDeployButton('S', 7.5)
         self.createDeployButton('T', 8.25)
 
-    def updateDeployButton(self, pieceType):
+    def updateDeployButton(self, pieceType: str) -> None:
         if not self.gameEngine.deployingPieceType: return
         if self.gameEngine.turnCount % 2 == 1:
             deployedCount = self.gameEngine.white_pieces.get(pieceType, 0)
@@ -69,7 +68,7 @@ class sideWidget(tk.Frame):
             newText = 'Place Emperor | ' + str(remainingPiecesToDeploy) + ' Remaining'
         elif pieceType == 'P':
             remainingPiecesToDeploy = 8 - deployedCount
-            newText = 'Place Man-at-Arms | ' + str(remainingPiecesToDeploy) + ' Remaining'
+            newText = 'Place Spearman | ' + str(remainingPiecesToDeploy) + ' Remaining'
         elif pieceType == 'L':
             remainingPiecesToDeploy = 4 - deployedCount
             newText = 'Place Lancer | ' + str(remainingPiecesToDeploy) + ' Remaining'
@@ -77,7 +76,7 @@ class sideWidget(tk.Frame):
             remainingPiecesToDeploy = 2 - deployedCount
             newText = 'Place Merchant | ' + str(remainingPiecesToDeploy) + ' Remaining'
         elif pieceType == 'A':
-            remainingPiecesToDeploy = 6 - deployedCount
+            remainingPiecesToDeploy = 5 - deployedCount
             newText = 'Place Archer | ' + str(remainingPiecesToDeploy) + ' Remaining'
         elif pieceType == 'G':
             remainingPiecesToDeploy = 1 - deployedCount
@@ -95,7 +94,7 @@ class sideWidget(tk.Frame):
         else:
             self.deployButtons[pieceType]['state'] = 'disabled'
 
-    def handleGameOver(self):
+    def handleGameOver(self) -> None:
         self.clear()
         winText = 'White was victorious!' if self.gameEngine.turnCount % 2 == 0 else 'Black was victorious!' 
         self.winText = self.sideWidgetCanvas.create_text(self.textX, self.size, text=winText, font=self.BOLD_FONT, fill='white', tag='turnCountText') 
@@ -103,13 +102,13 @@ class sideWidget(tk.Frame):
         self.startButton.configure(width=15,  activebackground = "#33B5E5", relief = 'flat')
         self.sideWidgetCanvas.create_window(self.textX, self.size * 2, window=self.startButton)
 
-    def updateTurnDisplay(self):
+    def updateTurnDisplay(self) -> None:
         turnText = 'Black to Move' if self.gameEngine.turnCount % 2 == 0 else 'White to Move'
         self.sideWidgetCanvas.itemconfigure(self.playersTurnTextID, text=turnText)
         turnCountText = 'Turn ' + str(self.gameEngine.turnCount)
         self.sideWidgetCanvas.itemconfigure(self.turnCountText, text=turnCountText)
 
-    def updateAfterDeploy(self):
+    def updateAfterDeploy(self) -> None:
             turn = 2 if self.gameEngine.turnCount % 2 == 0 else 1
             turnText = 'Player ' + str(turn) + '\'s Turn' 
             self.sideWidgetCanvas.itemconfigure(self.playersTurnTextID, text=turnText)
@@ -122,12 +121,12 @@ class sideWidget(tk.Frame):
             self.updateDeployButton('S')
             self.updateDeployButton('T')
 
-    def clear(self):
+    def clear(self) -> None:
         widgets = self.sideWidgetCanvas.find_all()
         for widget in widgets:
             self.sideWidgetCanvas.delete(widget)
 
-    def redraw(self, event=None):
+    def redraw(self, event=None) -> None:
         if event:
             self.sideWidgetX = event.width
         self.textX = event.width // 2 if event else BASE_SIDEWIDGET_WIDTH // 2

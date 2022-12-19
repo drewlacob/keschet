@@ -16,55 +16,45 @@ class GameBoard(tk.Frame):
 
         self.sideWidget = sideWidget(self) #create the menu on the right hand side
 
-    def quickDeploy(self):
+    def quickDeploy(self) -> None:
         self.sideWidget.clear()
-        self.gameEngine.matrix = [['-', 'bT', 'bE', 'bG', 'bS', 'bT', '-', 'bP', 'bP', 'bT'],
-                       ['-', 'bM', 'bL', 'bA', '-', 'bA', 'bA', 'bM', 'bA', 'bL'],
-                       ['bA', 'bP', 'bP', 'bP', 'bL', 'bL', 'bP', 'bP', 'bP', 'bA'],
-                       ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
-                       ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
-                       ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
-                       ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
-                       ['wA', 'wP', 'wP', 'wP', 'wL', 'wL', 'wP', 'wP', 'wP', 'wA'],
-                       ['wL', 'wA', 'wM', 'wA', 'wA', '-', 'wA', 'wL', 'wM', '-'],
-                       ['wT', 'wP', 'wP', '-', 'wT', 'wS', 'wG', 'wE', 'wT', '-']]
+        self.gameEngine.setQuickDeployBoard()
         self.boardDisplay.redrawPieces()
         self.beginPlay()
 
-    def beginPlay(self):
+    def beginPlay(self) -> None:
         self.gameEngine.playPhaseStarted = True
         self.gameEngine.turnCount = 1
         self.sideWidget.startPlayPhase()
     
-    def placePieceHelper(self, pieceType):
+    def placePieceHelper(self, pieceType: str) -> None:
         self.boardDisplay.colorDeployableSquares()
-        self.gameEngine.deployingPieceType = pieceType #abstract into game engine
-        # self.gameEngine.awaitingDeployClick = True
+        self.gameEngine.deployingPieceType = pieceType
 
-    def restartGameHelper(self):
+    def restartGameHelper(self) -> None:
         self.restartGame()
-        self.sideWidget.sideWidgetCanvas.destroy() #TODO: fix this I don't like it
+        self.sideWidget.sideWidgetCanvas.destroy()
         self.sideWidget = sideWidget(self)
 
-    def restartGame(self):
+    def restartGame(self) -> None:
         self.sideWidget.clear()
         self.boardDisplay.clear()
         self.gameEngine.reset()
 
-    def redrawBoard(self):
+    def redrawBoard(self) -> None:
         self.boardDisplay.redrawBoard()
 
-    def redrawPieces(self):
+    def redrawPieces(self) -> None:
         self.boardDisplay.redrawPieces()
 
-    def colorPieceAndPossibleMoves(self, r, c):
+    def colorPieceAndPossibleMoves(self, r: int, c: int) -> None:
         self.boardDisplay.colorPieceAndPossibleMoves(r, c)
 
-    def colorEmpPurpleIfAttacked(self):
+    def colorEmpPurpleIfAttacked(self) -> None:
         self.boardDisplay.colorEmpPurpleIfAttacked()
 
-    def colorDeployableSquares(self):
+    def colorDeployableSquares(self) -> None:
         self.boardDisplay.colorDeployableSquares()
 
-    def placePiece(self, x0, y0, image):
+    def placePiece(self, x0: int, y0: int, image: str) -> None:
         self.boardDisplay.placePiece(x0, y0, image)

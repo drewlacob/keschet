@@ -20,7 +20,7 @@ class boardDisplay(tk.Frame):
         self.canvas.bind("<Configure>", self.refresh)
         self.canvas.bind('<Button 1>', self.getorigin)
     
-    def colorDeployableSquares(self):
+    def colorDeployableSquares(self) -> None:
         squares = self.canvas.find_withtag('square')
         for square in squares:
             coords = self.canvas.coords(square)
@@ -31,18 +31,17 @@ class boardDisplay(tk.Frame):
             if self.gameEngine.turnCount % 2 == 0 and r <= 2 and self.gameEngine.matrix[r][c] == '-':
                 self.canvas.itemconfigure(square, fill=POSSIBLE_MOVE_COLOR)
 
-    def getorigin(self, eventorigin):
+    def getorigin(self, eventorigin) -> None:
         c = eventorigin.x // self.size
         r = eventorigin.y // self.size
-        print(r, c)
         self.gameEngine.handleClick(r, c)
 
-    def clear(self):
+    def clear(self) -> None:
         widgets = self.canvas.find_withtag('piece')
         for widget in widgets:
             self.canvas.delete(widget)
 
-    def colorEmpPurpleIfAttacked(self):
+    def colorEmpPurpleIfAttacked(self) -> None:
         pieceColor = 'w' if self.gameEngine.turnCount % 2 == 1 else 'b'
         for r1 in range(0, self.rows):
             for c1 in range(0, self.columns):
@@ -60,7 +59,7 @@ class boardDisplay(tk.Frame):
                 if r == emperorR and c == emperorC:
                     self.canvas.itemconfigure(square, fill=EMPEROR_ATTACKED_COLOR)
 
-    def colorPieceAndPossibleMoves(self, r0, c0):
+    def colorPieceAndPossibleMoves(self, r0: int, c0: int) -> None:
         pieceColor = self.gameEngine.matrix[r0][c0][0]
         enemyColor = 'w' if pieceColor == 'b' else 'b'
         squares = self.canvas.find_withtag('square')
@@ -78,7 +77,7 @@ class boardDisplay(tk.Frame):
                 elif self.gameEngine.matrix[r][c][0] == pieceColor:
                     self.canvas.itemconfigure(square, fill=PROTECT_PIECE_COLOR)
 
-    def redrawBoard(self):
+    def redrawBoard(self) -> None:
         self.canvas.delete("square")
         color = BOARD_TWO_COLOR
         for row in range(self.rows):
@@ -106,7 +105,7 @@ class boardDisplay(tk.Frame):
         self.canvas.tag_raise("piece")
         self.canvas.tag_lower("square")
 
-    def redrawPieces(self):
+    def redrawPieces(self) -> None:
         self.canvas.delete('piece')
         for r in range(self.rows):
             for c in range(self.columns):
@@ -125,16 +124,15 @@ class boardDisplay(tk.Frame):
         self.canvas.tag_raise("piece")
         self.canvas.tag_lower("square")
 
-    def refresh(self, event=None):
+    def refresh(self, event=None) -> None:
         '''Redraw the board, possibly in response to window being resized'''
-        print(event.width, event.height)
-        xsize = int((event.width-1) / self.columns) #if event else int((BASE_WIDTH-1) / self.columns)
-        ysize = int((event.height-1) / self.rows) #if event else int((BASE_HEIGHT-1) / self.columns)
+        xsize = int((event.width-1) / self.columns)
+        ysize = int((event.height-1) / self.rows)
         self.size = min(xsize, ysize)
         self.redrawBoard()
         self.redrawPieces()
 
-    def import_pieces(self): #opens and stores images of pieces and prepares the pieces for the game for both sides
+    def import_pieces(self) -> None: #opens and stores images of pieces and prepares the pieces for the game for both sides
         path = os.path.join(os.path.dirname(__file__), "white") #stores white pieces images into dicts
         w_dirs = os.listdir(path)
         for file in w_dirs:
@@ -155,9 +153,9 @@ class boardDisplay(tk.Frame):
             img = ImageTk.PhotoImage(image=img)
             self.black_images.setdefault(file, img)
     
-    def getWindowImage(self):
+    def getWindowImage(self) -> str:
         return self.black_images['G.png']
 
-    def placePiece(self, x0, y0, image):
+    def placePiece(self, x0: int, y0: int, image: str) -> None:
         images = self.white_images if self.gameEngine.turnCount % 2 == 1 else self.black_images
         self.canvas.create_image(x0, y0, image = images[image], tags=('piece'))
