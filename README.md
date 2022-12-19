@@ -70,4 +70,5 @@
 
 ### Demo
 
-WIP
+![keschet_fullgame_demo](https://github.com/drewlacob/keschet/blob/master/keschetDeployment.gif)
+![keschet_quickDeploy_demo](https://github.com/drewlacob/keschet/blob/master/keschetQuickDeploy.gif)
