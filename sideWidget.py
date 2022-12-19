@@ -59,7 +59,7 @@ class sideWidget(tk.Frame):
         self.createDeployButton('T', 8.25)
 
     def updateDeployButton(self, pieceType):
-        if not self.gameEngine.awaitingDeployClick: return
+        if not self.gameEngine.deployingPieceType: return
         if self.gameEngine.turnCount % 2 == 1:
             deployedCount = self.gameEngine.white_pieces.get(pieceType, 0)
         else:

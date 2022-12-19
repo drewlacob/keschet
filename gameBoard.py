@@ -39,7 +39,7 @@ class GameBoard(tk.Frame):
     def placePieceHelper(self, pieceType):
         self.boardDisplay.colorDeployableSquares()
         self.gameEngine.deployingPieceType = pieceType #abstract into game engine
-        self.gameEngine.awaitingDeployClick = True
+        # self.gameEngine.awaitingDeployClick = True
 
     def restartGameHelper(self):
         self.restartGame()

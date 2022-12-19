@@ -9,7 +9,7 @@ class engine():
         self.reset() #reset parts of board that differ for each game
 
     def handleClick(self, r: int, c: int) -> None:
-        if self.awaitingDeployClick: #handle deployment click to board once piece selected
+        if self.deployingPieceType: #handle deployment click to board once piece selected
             if self.matrix[r][c] != '-' or (self.turnCount % 2 == 1 and r < 7) or (self.turnCount % 2 == 0 and r > 2): #if square occupied or outside of deployment bounds
                 return
             self.matrix[r][c] = ('w' + self.deployingPieceType) if self.turnCount % 2 == 1 else ('b' + self.deployingPieceType) #update the board with the deployment
@@ -32,7 +32,7 @@ class engine():
                 piecesDeployed += self.black_pieces[piece]
 
             if piecesDeployed == 2: #deploy phase has ended, clean up and begin play #TODO: change back to 26 <----------------------------
-                self.awaitingDeployClick = False
+                self.deployingPieceType = None
                 self.gameBoard.sideWidget.clear()
                 self.gameBoard.redrawBoard()
                 self.gameBoard.beginPlay()
@@ -41,7 +41,7 @@ class engine():
 
             #else update the side widget and redraw everything to render the piece correctly and remove the deploy highlighting
             self.gameBoard.sideWidget.updateAfterDeploy()
-            self.awaitingDeployClick = False
+            self.deployingPieceType = None
             self.gameBoard.redrawBoard()
             self.gameBoard.redrawPieces()
         
@@ -341,7 +341,6 @@ class engine():
         return False
 
     def reset(self):
-        self.awaitingDeployClick = False #let's handle click know that the next click is a deploy click #could be changed to only use deployingPieceType
         self.deployingPieceType = None #holds the piece waiting to be deployed
         self.playPhaseStarted = False
         self.matrix = [['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'], #initialize the game board to all empty squares
