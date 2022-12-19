@@ -3,17 +3,18 @@
 ### Introduction to Keschet
 
 - Keschet is played by two players on a 10 x 10 board of one hundred squares.
+- Keschet is a chess-like game with different pieces and a different starting position every game as players choose where their pieces start.
 - Each player begins the game wiith 1 Emperor, 1 General, 1 Scholar, 2 Merchants, 3 Thieves, 4 Lancers, 5 Archers, and 8 Spearmen.
 - The game is divided in two phases: the deployment phase and the play phase.
 
-### Deploy Phase
+#### Deploy Phase
 
 - At the start of a standard game, a player may place any of their pieces in the any unoccupied square in the first 3 throws at their end of the board.
 - The opposing player will then place a piece of the their choose in their first 3 rows in an unoccupied square.
 - This continues back and forth until each player has played all of their 25 pieces.
 - The player who placed the first piece makes the first move.
 
-### Play Phase
+#### Play Phase
 
 - This phase of the game is very similar to chess, with the moving and taking of pieces.
 - Capture the opponent's emperor in order to win.
@@ -62,7 +63,7 @@
 
 - The spearman can move up to 2 squares horizontally or vertically.
 
-### Credit
+### Credits
 
 - Adapted from Keschet in Anthony Ryan's bestseller _Blood Song_
 - Thanks to game-icons.net for royalty-free, customizable svg images used as the pieces in the game
