@@ -1,6 +1,6 @@
 class engine():
-    def __init__(self, gameBoard) -> None:
-        self.gameBoard = gameBoard #hold a reference to game instance which created the engine
+    def __init__(self, gameController) -> None:
+        self.gameController = gameController #hold a reference to game instance which created the engine
         self.rows = 10
         self.columns = 10
         self.size = 60 #size of each square is 60 pixels by when default game is initialized
@@ -15,7 +15,7 @@ class engine():
             self.matrix[r][c] = ('w' + self.deployingPieceType) if self.turnCount % 2 == 1 else ('b' + self.deployingPieceType) #update the board with the deployment
             x0, y0 = (c * self.size) + int(self.size/2), (r * self.size) + int(self.size/2) #find position to place image
             imageIdentifier = self.deployingPieceType + '.png'
-            self.gameBoard.placePiece(x0, y0, imageIdentifier)
+            self.gameController.placePiece(x0, y0, imageIdentifier)
 
             #increment our count of how many of this piece type have been deployed
             curPieces = self.white_pieces if self.turnCount % 2 == 1 else self.black_pieces
@@ -33,17 +33,17 @@ class engine():
 
             if piecesDeployed == 25: #deploy phase has ended, clean up and begin play
                 self.deployingPieceType = None
-                self.gameBoard.sideWidget.clear()
-                self.gameBoard.redrawBoard()
-                self.gameBoard.beginPlay()
-                self.gameBoard.redrawPieces()
+                self.gameController.sideWidget.clear()
+                self.gameController.redrawBoard()
+                self.gameController.beginPlay()
+                self.gameController.redrawPieces()
                 return
 
             #else update the side widget and redraw everything to render the piece correctly and remove the deploy highlighting
-            self.gameBoard.sideWidget.updateAfterDeploy()
+            self.gameController.sideWidget.updateAfterDeploy()
             self.deployingPieceType = None
-            self.gameBoard.redrawBoard()
-            self.gameBoard.redrawPieces()
+            self.gameController.redrawBoard()
+            self.gameController.redrawPieces()
         
         #handle click during play phase: piece selection, moving pieces, deploying pieces from thief capture
         if self.playPhaseStarted and not self.isGameOver:
@@ -52,10 +52,10 @@ class engine():
                 if (self.turnCount % 2 == 1 and r >= 7 and self.matrix[r][c] == '-') or (self.turnCount % 2 == 0 and r <= 2 and self.matrix[r][c] == '-'):
                     self.matrix[r][c] = self.deployingPieceType
                     self.deployingPieceType = None
-                    self.gameBoard.redrawPieces()
-                    self.gameBoard.redrawBoard()
+                    self.gameController.redrawPieces()
+                    self.gameController.redrawBoard()
                     self.turnCount += 1
-                    self.gameBoard.sideWidget.updateTurnDisplay()
+                    self.gameController.sideWidget.updateTurnDisplay()
 
             #handle normal move during play phase
             elif self.pieceToMove and (r, c) in self.allowedMoves: #if a piece is currently selected and the new selection is a place to move
@@ -81,8 +81,8 @@ class engine():
                     self.deployingPieceType = pieceColor + self.matrix[r][c][1]
                     self.matrix[r][c] = self.matrix[self.pieceToMove[0]][self.pieceToMove[1]]
                     self.matrix[self.pieceToMove[0]][self.pieceToMove[1]] = '-'
-                    self.gameBoard.redrawBoard()
-                    self.gameBoard.colorDeployableSquares()
+                    self.gameController.redrawBoard()
+                    self.gameController.colorDeployableSquares()
                 else:    #general case, move piece
                     self.matrix[r][c] = self.matrix[self.pieceToMove[0]][self.pieceToMove[1]]
                     self.matrix[self.pieceToMove[0]][self.pieceToMove[1]] = '-'
@@ -90,37 +90,37 @@ class engine():
                 #update turn text
                 if not self.deployingPieceType:
                     self.turnCount += 1
-                    self.gameBoard.sideWidget.updateTurnDisplay()
+                    self.gameController.sideWidget.updateTurnDisplay()
 
                 #redraw board and clean up for next turn
-                self.gameBoard.redrawPieces()
+                self.gameController.redrawPieces()
                 if not self.deployingPieceType:
-                    self.gameBoard.redrawBoard()
+                    self.gameController.redrawBoard()
 
                 #check if the game is over and handle that
                 self.checkGameOver()
                 if self.isGameOver:
-                    self.gameBoard.sideWidget.handleGameOver()
+                    self.gameController.sideWidget.handleGameOver()
                     return
 
                 # clear the selected piece/moves, color emperor if in check
-                self.gameBoard.colorEmpPurpleIfAttacked()
+                self.gameController.colorEmpPurpleIfAttacked()
                 self.pieceToMove = None
                 self.allowedMoves.clear()
             elif self.matrix[r][c][0] == pieceColor: #selected a piece of your color, calculate moves and draw board with moves
                 if (r, c) == self.pieceToMove: #deselect the piece currently selected
                     self.pieceToMove = None
                     self.allowedMoves.clear()
-                    self.gameBoard.redrawBoard()
-                    self.gameBoard.colorEmpPurpleIfAttacked()
+                    self.gameController.redrawBoard()
+                    self.gameController.colorEmpPurpleIfAttacked()
                     return
                 
                 # handle the selection of a piece to move
                 self.pieceToMove = (r, c)
                 self.allowedMoves = self.calcAllowedMoves(r, c)
-                self.gameBoard.redrawBoard()
-                self.gameBoard.colorPieceAndPossibleMoves(r, c)
-                self.gameBoard.colorEmpPurpleIfAttacked()
+                self.gameController.redrawBoard()
+                self.gameController.colorPieceAndPossibleMoves(r, c)
+                self.gameController.colorEmpPurpleIfAttacked()
 
     def calcAllowedMoves(self, r: int, c: int, defended: bool=False) -> set(): #defended = True will also return squares that piece is defending 
         # defended squares are defined as squares it could move to if there is an allied piece there and that allied piece on the square was captured

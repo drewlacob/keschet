@@ -1,9 +1,9 @@
 import tkinter as tk
-from gameBoard import GameBoard
+from gameController import gameController
 
 root = tk.Tk()
 root.title('Keschet')
-game = GameBoard(root)
+game = gameController(root)
 game.pack(fill="both", expand="true")
 game.boardDisplay.import_pieces()
 root.wm_iconphoto(False, game.boardDisplay.getWindowImage())
