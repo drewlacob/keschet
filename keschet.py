@@ -2,7 +2,9 @@ import tkinter as tk
 from gameBoard import GameBoard
 
 root = tk.Tk()
-board = GameBoard(root)
-board.pack(side="top", fill="both", expand="true")
-board.import_pieces()
+root.title('Keschet')
+game = GameBoard(root)
+game.pack(fill="both", expand="true")
+game.import_pieces()
+root.wm_iconphoto(False, game.getWindowImage())
 root.mainloop()

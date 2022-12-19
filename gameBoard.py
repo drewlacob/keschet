@@ -14,12 +14,9 @@ class GameBoard(tk.Frame):
         self.columns = 10
         self.white_images = {}
         self.black_images = {}
-
         self.gameEngine = engine(self)
 
         tk.Frame.__init__(self, parent)
-        self.BOLD_FONT = font.Font(family='freemono', size=18, weight="bold")
-        
         self.canvas = tk.Canvas(self, borderwidth = 0, highlightthickness = 0, width = BASE_WIDTH, height = BASE_HEIGHT, background = 'grey')
         self.canvas.pack(side="left", fill="both", expand=True)
 
@@ -194,3 +191,6 @@ class GameBoard(tk.Frame):
             img = img.resize((60,60), Image.Resampling.LANCZOS)
             img = ImageTk.PhotoImage(image=img)
             self.black_images.setdefault(file, img)
+    
+    def getWindowImage(self):
+        return self.black_images['G.png']
