@@ -83,7 +83,7 @@ class boardDisplay(tk.Frame):
         color = BOARD_TWO_COLOR
         for row in range(self.rows):
             color = BOARD_ONE_COLOR if color == BOARD_TWO_COLOR else BOARD_TWO_COLOR
-            if self.gameEngine.deployingPieceType:
+            if self.gameEngine.deployingPieceType and not self.gameEngine.playPhaseStarted:
                 if self.gameEngine.turnCount % 2 == 1 and row >= 7:
                     color = POSSIBLE_MOVE_COLOR
                 elif self.gameEngine.turnCount % 2 == 0 and row <= 2:
@@ -98,7 +98,7 @@ class boardDisplay(tk.Frame):
                 else: #else normal color
                     self.canvas.create_rectangle(x1, y1, x2, y2, outline="black", fill=color, tags="square")
                 color = BOARD_ONE_COLOR if color == BOARD_TWO_COLOR else BOARD_TWO_COLOR
-                if self.gameEngine.deployingPieceType:
+                if self.gameEngine.deployingPieceType and not self.gameEngine.playPhaseStarted:
                     if self.gameEngine.turnCount % 2 == 1 and row >= 7:
                         color = POSSIBLE_MOVE_COLOR
                     elif self.gameEngine.turnCount % 2 == 0 and row <= 2:

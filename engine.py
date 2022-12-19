@@ -9,7 +9,7 @@ class engine():
         self.reset() #reset parts of board that differ for each game
 
     def handleClick(self, r: int, c: int) -> None:
-        if self.deployingPieceType: #handle deployment click to board once piece selected
+        if self.deployingPieceType and not self.playPhaseStarted: #handle deployment click to board once piece selected
             if self.matrix[r][c] != '-' or (self.turnCount % 2 == 1 and r < 7) or (self.turnCount % 2 == 0 and r > 2): #if square occupied or outside of deployment bounds
                 return
             self.matrix[r][c] = ('w' + self.deployingPieceType) if self.turnCount % 2 == 1 else ('b' + self.deployingPieceType) #update the board with the deployment
@@ -48,10 +48,10 @@ class engine():
         #handle click during play phase: piece selection, moving pieces, deploying pieces from thief capture
         if self.playPhaseStarted and not self.isGameOver:
             pieceColor = 'w' if self.turnCount % 2 == 1 else 'b'
-            if self.awaitingThiefStealDeployment: #piece from thief capture is being deployed
+            if self.deployingPieceType: #piece from thief capture is being deployed
                 if (self.turnCount % 2 == 1 and r >= 7 and self.matrix[r][c] == '-') or (self.turnCount % 2 == 0 and r <= 2 and self.matrix[r][c] == '-'):
-                    self.matrix[r][c] = self.awaitingThiefStealDeployment
-                    self.awaitingThiefStealDeployment = None
+                    self.matrix[r][c] = self.deployingPieceType
+                    self.deployingPieceType = None
                     self.gameBoard.redrawPieces()
                     self.gameBoard.redrawBoard()
                     self.turnCount += 1
@@ -78,7 +78,7 @@ class engine():
 
                 #if thief is capturing an enemy piece
                 elif selectedPiece[1] == 'T' and self.matrix[r][c][0] == enemyColor:
-                    self.awaitingThiefStealDeployment = pieceColor + self.matrix[r][c][1]
+                    self.deployingPieceType = pieceColor + self.matrix[r][c][1]
                     self.matrix[r][c] = self.matrix[self.pieceToMove[0]][self.pieceToMove[1]]
                     self.matrix[self.pieceToMove[0]][self.pieceToMove[1]] = '-'
                     self.gameBoard.redrawBoard()
@@ -88,14 +88,13 @@ class engine():
                     self.matrix[self.pieceToMove[0]][self.pieceToMove[1]] = '-'
 
                 #update turn text
-                if not self.awaitingThiefStealDeployment: #REFACTOR: make the following display updates into a function
-                    # self.turn = 2 if self.turn == 1 else 1
+                if not self.deployingPieceType:
                     self.turnCount += 1
                     self.gameBoard.sideWidget.updateTurnDisplay()
 
                 #redraw board and clean up for next turn
                 self.gameBoard.redrawPieces()
-                if not self.awaitingThiefStealDeployment:
+                if not self.deployingPieceType:
                     self.gameBoard.redrawBoard()
 
                 #check if the game is over and handle that
@@ -359,7 +358,5 @@ class engine():
         self.allowedMoves = set() #holds the moves allowed for the current piece we are attempting to move
         self.whiteProtectedSquares = set() #holds squares protected by the white team #could be changed to just protectedSquares = {}
         self.blackProtectedSquares = set() #holds squares protected by the black team
-        self.pieceToDeployFromThief = None #piece to deploy from thief steal #could be changed to use deployingPieceType
-        self.awaitingThiefStealDeployment = None #let's handle click know we are awaiting deployment from a thief steal # could be changed to use awaiting deploy click?
         self.turnCount = 1 #count of the turns that have passed during the play phase
         self.isGameOver = False
