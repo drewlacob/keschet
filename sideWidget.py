@@ -23,6 +23,10 @@ class sideWidget(tk.Frame):
         self.quickDeployButton.configure(width=15,  activebackground = "#33B5E5", relief = 'flat')
         self.sideWidgetCanvas.create_window(self.textX, size * 3, window=self.quickDeployButton)
         
+        self.versusAiButton = tk.Button(self.sideWidgetCanvas, text='Versus AI', command=self.gameController.startAIGame)
+        self.versusAiButton.configure(width=15,  activebackground = "#33B5E5", relief = 'flat')
+        self.sideWidgetCanvas.create_window(self.textX, size * 3, window=self.versusAiButton)
+
         self.sideWidgetCanvas.pack(side='right', fill='both', expand=True)
         self.sideWidgetCanvas.bind("<Configure>", self.redraw)
     

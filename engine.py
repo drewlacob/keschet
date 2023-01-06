@@ -1,3 +1,5 @@
+import subprocess
+
 class engine():
     def __init__(self, gameController) -> None:
         self.gameController = gameController #hold a reference to game instance which created the engine
@@ -7,6 +9,82 @@ class engine():
         self.white_images = {} #images for player one
         self.black_images = {} #images for player two
         self.reset() #reset parts of board that differ for each game
+
+    def handlePlayerTurn(self, r, c) -> None:
+        pieceColor = 'w' if self.turnCount % 2 == 1 else 'b'
+        if self.deployingPieceType: #piece from thief capture is being deployed
+            if (self.turnCount % 2 == 1 and r >= 7 and self.matrix[r][c] == '-') or (self.turnCount % 2 == 0 and r <= 2 and self.matrix[r][c] == '-'):
+                self.matrix[r][c] = self.deployingPieceType
+                self.deployingPieceType = None
+                self.gameController.redrawPieces()
+                self.gameController.redrawBoard()
+                self.turnCount += 1
+                self.gameController.sideWidget.updateTurnDisplay()
+
+        #handle normal move during play phase
+        elif self.pieceToMove and (r, c) in self.allowedMoves: #if a piece is currently selected and the new selection is a place to move
+            selectedPiece = self.matrix[self.pieceToMove[0]][self.pieceToMove[1]]
+
+            #if scholar is being moved or piece moves out of protection, then remove protection from square
+            myProtectedSquares = self.whiteProtectedSquares if self.turnCount % 2 == 1 else self.blackProtectedSquares
+            if selectedPiece[1] == 'S' or (self.pieceToMove[0], self.pieceToMove[1]) in myProtectedSquares:
+                myProtectedSquares.clear()
+            
+            #if killing enemy scholar, remove that scholars protected square
+            enemyColor = 'b' if pieceColor == 'w' else 'w'
+            enemyProtectedSquares = self.blackProtectedSquares if self.turnCount % 2 == 1 else self.whiteProtectedSquares
+            if self.matrix[r][c] == enemyColor + 'S': 
+                enemyProtectedSquares.clear()
+
+            #if scholar is selected piece and clicking on same color piece to protect
+            if selectedPiece[1] == 'S' and self.matrix[r][c][0] == pieceColor:
+                myProtectedSquares.add((r, c)) #scholar position, protected position
+
+            #if thief is capturing an enemy piece
+            elif selectedPiece[1] == 'T' and self.matrix[r][c][0] == enemyColor:
+                self.deployingPieceType = pieceColor + self.matrix[r][c][1]
+                self.matrix[r][c] = self.matrix[self.pieceToMove[0]][self.pieceToMove[1]]
+                self.matrix[self.pieceToMove[0]][self.pieceToMove[1]] = '-'
+                self.gameController.redrawBoard()
+                self.gameController.colorDeployableSquares()
+            else:    #general case, move piece
+                self.matrix[r][c] = self.matrix[self.pieceToMove[0]][self.pieceToMove[1]]
+                self.matrix[self.pieceToMove[0]][self.pieceToMove[1]] = '-'
+
+            #update turn text
+            if not self.deployingPieceType:
+                self.turnCount += 1
+                self.gameController.sideWidget.updateTurnDisplay()
+
+            #redraw board and clean up for next turn
+            self.gameController.redrawPieces()
+            if not self.deployingPieceType:
+                self.gameController.redrawBoard()
+
+            #check if the game is over and handle that
+            self.checkGameOver()
+            if self.isGameOver:
+                self.gameController.sideWidget.handleGameOver()
+                return
+
+            # clear the selected piece/moves, color emperor if in check
+            self.gameController.colorEmpPurpleIfAttacked()
+            self.pieceToMove = None
+            self.allowedMoves.clear()
+        elif self.matrix[r][c][0] == pieceColor: #selected a piece of your color, calculate moves and draw board with moves
+            if (r, c) == self.pieceToMove: #deselect the piece currently selected
+                self.pieceToMove = None
+                self.allowedMoves.clear()
+                self.gameController.redrawBoard()
+                self.gameController.colorEmpPurpleIfAttacked()
+                return
+            
+            # handle the selection of a piece to move
+            self.pieceToMove = (r, c)
+            self.allowedMoves = self.calcAllowedMoves(r, c)
+            self.gameController.redrawBoard()
+            self.gameController.colorPieceAndPossibleMoves(r, c)
+            self.gameController.colorEmpPurpleIfAttacked()
 
     def handleClick(self, r: int, c: int) -> None:
         if self.deployingPieceType and not self.playPhaseStarted: #handle deployment click to board once piece selected
@@ -47,80 +125,29 @@ class engine():
         
         #handle click during play phase: piece selection, moving pieces, deploying pieces from thief capture
         if self.playPhaseStarted and not self.isGameOver:
-            pieceColor = 'w' if self.turnCount % 2 == 1 else 'b'
-            if self.deployingPieceType: #piece from thief capture is being deployed
-                if (self.turnCount % 2 == 1 and r >= 7 and self.matrix[r][c] == '-') or (self.turnCount % 2 == 0 and r <= 2 and self.matrix[r][c] == '-'):
-                    self.matrix[r][c] = self.deployingPieceType
-                    self.deployingPieceType = None
-                    self.gameController.redrawPieces()
-                    self.gameController.redrawBoard()
-                    self.turnCount += 1
-                    self.gameController.sideWidget.updateTurnDisplay()
+            if not self.playingAI:
+                self.handlePlayerTurn(r, c)
+            else:
+                prevTurnCount = self.turnCount
+                self.handlePlayerTurn(r, c)
+                if self.turnCount != prevTurnCount:
+                    self.handleAITurn()
 
-            #handle normal move during play phase
-            elif self.pieceToMove and (r, c) in self.allowedMoves: #if a piece is currently selected and the new selection is a place to move
-                selectedPiece = self.matrix[self.pieceToMove[0]][self.pieceToMove[1]]
+    def handleAITurn(self):
+        #call the cpp with the board as input
+        boardAsString = ''
+        for r1 in range(0, self.rows):
+            for c1 in range(0, self.columns):
+                if self.matrix[r1][c1][0] == '-':
+                    boardAsString += '--'
+                else: boardAsString += self.matrix[r1][c1]
+        p = subprocess.run(['aiHandler.exe', boardAsString], capture_output=True, text=True)
+        print(p.stdout)
+        
 
-                #if scholar is being moved or piece moves out of protection, then remove protection from square
-                myProtectedSquares = self.whiteProtectedSquares if self.turnCount % 2 == 1 else self.blackProtectedSquares
-                if selectedPiece[1] == 'S' or (self.pieceToMove[0], self.pieceToMove[1]) in myProtectedSquares:
-                    myProtectedSquares.clear()
-                
-                #if killing enemy scholar, remove that scholars protected square
-                enemyColor = 'b' if pieceColor == 'w' else 'w'
-                enemyProtectedSquares = self.blackProtectedSquares if self.turnCount % 2 == 1 else self.whiteProtectedSquares
-                if self.matrix[r][c] == enemyColor + 'S': 
-                    enemyProtectedSquares.clear()
+        #make the move on the board
 
-                #if scholar is selected piece and clicking on same color piece to protect
-                if selectedPiece[1] == 'S' and self.matrix[r][c][0] == pieceColor:
-                    myProtectedSquares.add((r, c)) #scholar position, protected position
-
-                #if thief is capturing an enemy piece
-                elif selectedPiece[1] == 'T' and self.matrix[r][c][0] == enemyColor:
-                    self.deployingPieceType = pieceColor + self.matrix[r][c][1]
-                    self.matrix[r][c] = self.matrix[self.pieceToMove[0]][self.pieceToMove[1]]
-                    self.matrix[self.pieceToMove[0]][self.pieceToMove[1]] = '-'
-                    self.gameController.redrawBoard()
-                    self.gameController.colorDeployableSquares()
-                else:    #general case, move piece
-                    self.matrix[r][c] = self.matrix[self.pieceToMove[0]][self.pieceToMove[1]]
-                    self.matrix[self.pieceToMove[0]][self.pieceToMove[1]] = '-'
-
-                #update turn text
-                if not self.deployingPieceType:
-                    self.turnCount += 1
-                    self.gameController.sideWidget.updateTurnDisplay()
-
-                #redraw board and clean up for next turn
-                self.gameController.redrawPieces()
-                if not self.deployingPieceType:
-                    self.gameController.redrawBoard()
-
-                #check if the game is over and handle that
-                self.checkGameOver()
-                if self.isGameOver:
-                    self.gameController.sideWidget.handleGameOver()
-                    return
-
-                # clear the selected piece/moves, color emperor if in check
-                self.gameController.colorEmpPurpleIfAttacked()
-                self.pieceToMove = None
-                self.allowedMoves.clear()
-            elif self.matrix[r][c][0] == pieceColor: #selected a piece of your color, calculate moves and draw board with moves
-                if (r, c) == self.pieceToMove: #deselect the piece currently selected
-                    self.pieceToMove = None
-                    self.allowedMoves.clear()
-                    self.gameController.redrawBoard()
-                    self.gameController.colorEmpPurpleIfAttacked()
-                    return
-                
-                # handle the selection of a piece to move
-                self.pieceToMove = (r, c)
-                self.allowedMoves = self.calcAllowedMoves(r, c)
-                self.gameController.redrawBoard()
-                self.gameController.colorPieceAndPossibleMoves(r, c)
-                self.gameController.colorEmpPurpleIfAttacked()
+        #end the turn and increment turn count
 
     def calcAllowedMoves(self, r: int, c: int, defended: bool=False) -> set(): #defended = True will also return squares that piece is defending 
         # defended squares are defined as squares it could move to if there is an allied piece there and that allied piece on the square was captured
@@ -372,3 +399,4 @@ class engine():
         self.blackProtectedSquares = set() #holds squares protected by the black team
         self.turnCount = 1 #count of the turns that have passed during the play phase
         self.isGameOver = False
+        self.playingAI = False

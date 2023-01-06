@@ -22,6 +22,10 @@ class gameController(tk.Frame):
         self.boardDisplay.redrawPieces()
         self.beginPlay()
 
+    def startAIGame(self) -> None:
+        self.quickDeploy()
+        self.gameEngine.playingAI = True
+
     def beginPlay(self) -> None:
         self.gameEngine.playPhaseStarted = True
         self.gameEngine.turnCount = 1
