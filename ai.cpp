@@ -1,6 +1,22 @@
 #include "ai.h"
 #include <iostream>
 
+Move::Move(int sRow, int sCol, int eRow, int eCol){
+    m_startRow = sRow;
+    m_startCol = sCol;
+    m_endRow = eRow;
+    m_endCol = eCol;
+}
+
+ProtectedSquare::ProtectedSquare(int row, int col) {
+    m_row = row;
+    m_col = col;
+}
+
+void ProtectedSquare::printPSquare(){
+    cout << "Protected square: " << m_row << " " << m_col << "\n";
+}
+
 Piece::Piece() {
     m_type = "--";
     m_row = -1;
@@ -18,7 +34,120 @@ vector<string> Piece::getMoves() {
     return moves;
 }
 
+bool ai::isOnBoard(int r, int c) {
+    if (r >= 0 && r < m_Board.size() && c >= 0 && c < m_Board[0].size())
+        return true;
+    else
+    {
+        return false;
+    }
+    
+}
+
+vector<Move> ai::calcDiagonalMoves(int r, int c, int distance, bool addDefendingMoves) {
+    char pieceColor = m_Board[r][c]->m_type[0];
+    char enemyColor;
+    if (pieceColor == 'w') {
+        enemyColor = 'b';
+    } else {
+        enemyColor = 'w';
+    }
+
+    vector<Move> moves;
+
+    for (int i = 0; i < distance + 1; i++){
+        int rMove = r - i;
+        int cMove = c - i;
+        if (isOnBoard(rMove, cMove)) {
+            Move possibleMove(r, c, rMove, cMove);
+            if (m_Board[rMove][cMove]->m_type[0] == enemyColor){   
+                moves.push_back(possibleMove);
+                break;
+            } 
+            else if (m_Board[rMove][cMove]->m_type[0] == pieceColor){
+                if (addDefendingMoves) {
+                    moves.push_back(possibleMove);
+                }
+                break;
+            }
+            else {
+                moves.push_back(possibleMove);
+            }
+        } 
+    }
+    for (int i = 0; i < distance + 1; i++){
+        int rMove = r - i;
+        int cMove = c + i;
+        if (isOnBoard(rMove, cMove)) {
+            Move possibleMove(r, c, rMove, cMove);
+            if (m_Board[rMove][cMove]->m_type[0] == enemyColor){   
+                moves.push_back(possibleMove);
+                break;
+            } 
+            else if (m_Board[rMove][cMove]->m_type[0] == pieceColor){
+                if (addDefendingMoves) {
+                    moves.push_back(possibleMove);
+                }
+                break;
+            }
+            else {
+                moves.push_back(possibleMove);
+            }
+        } 
+    }
+    for (int i = 0; i < distance + 1; i++){
+        int rMove = r + i;
+        int cMove = c - i;
+        if (isOnBoard(rMove, cMove)) {
+            Move possibleMove(r, c, rMove, cMove);
+            if (m_Board[rMove][cMove]->m_type[0] == enemyColor){   
+                moves.push_back(possibleMove);
+                break;
+            } 
+            else if (m_Board[rMove][cMove]->m_type[0] == pieceColor){
+                if (addDefendingMoves) {
+                    moves.push_back(possibleMove);
+                }
+                break;
+            }
+            else {
+                moves.push_back(possibleMove);
+            }
+        } 
+    }
+    for (int i = 0; i < distance + 1; i++){
+        int rMove = r + i;
+        int cMove = c + i;
+        if (isOnBoard(rMove, cMove)) {
+            Move possibleMove(r, c, rMove, cMove);
+            if (m_Board[rMove][cMove]->m_type[0] == enemyColor){   
+                moves.push_back(possibleMove);
+                break;
+            } 
+            else if (m_Board[rMove][cMove]->m_type[0] == pieceColor){
+                if (addDefendingMoves) {
+                    moves.push_back(possibleMove);
+                }
+                break;
+            }
+            else {
+                moves.push_back(possibleMove);
+            }
+        } 
+    }
+
+    //TODO: pass protected squares to AI and deal with that
+// enemyProtectedSquares = self.whiteProtectedSquares if pieceColor == 'b' else self.blackProtectedSquares
+//         for square in enemyProtectedSquares: #remove all squares as possible captures if the enemy scholar protects that piece
+//             if square in moves: moves.remove(square)
+    for (int i = 0; i < moves.size(); i++){
+
+    }
+    return moves;
+}
+
 ai::ai(std::string boardAsString) {
+    cout << "received string of: " << boardAsString << "\n";
     loadBoard(boardAsString);
     findBestMove();
     cout << "best move found: " << m_bestMove << "\n";
@@ -58,10 +187,17 @@ vector<string> ai::getPossibleMoves(int r, int c) {
 void ai::loadBoard(std::string boardAsString) {
     int index = 0;
     for (int r = 0; r < 10; r++) {
-        m_Board.push_back({});
+        vector<Piece *> nextRow;
+        m_Board.push_back(nextRow);
         for (int c = 0; c < 10; c++) {
             string piece = boardAsString.substr(index, 2);
             char pieceType = piece.at(1);
+            char pieceColor = piece.at(0);
+            if (pieceColor == 'W' || pieceColor == 'B'){ //handle protected squares, denoted by capital color
+                ProtectedSquare pSquare(r, c);
+                m_ProtectedSquares.insert(pSquare);
+                piece[0] = tolower(piece[0]);
+            }
             switch (pieceType) {
                 case 'P': m_Board[r].push_back(new Pawn(piece, r, c)); break;
                 case 'A': m_Board[r].push_back(new Archer(piece, r, c)); break;
@@ -89,4 +225,11 @@ void ai::printBoard(){
         }
      }
      std::cout << "\n";
+     for (auto itr = m_ProtectedSquares.begin(); itr != m_ProtectedSquares.end(); ++itr) {
+         ProtectedSquare square = *itr;
+         square.printPSquare();
+     }
+     //TODO: avoid using unordered set, waste some memory and use a big vector i guess
+     // maybe just leave the things capitalized in the cpp version
+     // and dont event worry about it except whenever accessing color just use a lower()
 }

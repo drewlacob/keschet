@@ -1,7 +1,8 @@
 import tkinter as tk
 from gameController import gameController
 #to run currently do
-#g++ aiHandler.cpp ai.cpp -o aiHandler && keschet.py
+#g++ aiHandler.cpp ai.cpp -o aiHandler && keschet.py #Windows development
+#g++ aiHandler.cpp ai.cpp -o aiHandler && python3.9 keschet.py #Mac development
 
 root = tk.Tk()
 root.title('Keschet')

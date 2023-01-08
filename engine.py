@@ -136,12 +136,26 @@ class engine():
     def handleAITurn(self):
         #call the cpp with the board as input
         boardAsString = ''
+        #created the string of the board
+        #capitalize the color of a piece if it is protected
         for r1 in range(0, self.rows):
             for c1 in range(0, self.columns):
                 if self.matrix[r1][c1][0] == '-':
                     boardAsString += '--'
-                else: boardAsString += self.matrix[r1][c1]
-        p = subprocess.run(['aiHandler.exe', boardAsString], capture_output=True, text=True)
+                else: 
+                    if (r1, c1) in self.whiteProtectedSquares or (r1, c1) in self.blackProtectedSquares:
+                        t = list(self.matrix[r1][c1])
+                        t[0] = t[0].upper()
+                        tString = ''.join(t)
+                        # print('before string: ', self.matrix[r1][c1])
+                        # print('new string after .upper(): ', tString)
+                        boardAsString += tString
+                        # boardAsString += self.matrix[r1][c1]
+                    else:
+                        boardAsString += self.matrix[r1][c1]
+        # print(self.matrix)
+        p = subprocess.run(['./aiHandler', boardAsString], capture_output=True, text=True) #Mac development
+        # p = subprocess.run(['aiHandler.exe', boardAsString], capture_output=True, text=True) #Windows development
         print(p.stdout)
         
 

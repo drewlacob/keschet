@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string>
 #include <vector>
+#include <unordered_set>
 
 using namespace std;
 
@@ -13,6 +14,24 @@ class Piece {
         Piece();
         Piece(string pieceType, int r0, int c0);
         vector<string> getMoves();
+};
+
+class Move {
+    public:
+        int m_startRow;
+        int m_startCol;
+        int m_endRow;
+        int m_endCol;
+
+        Move(int sRow, int sCol, int eRow, int eCol);
+};
+
+class ProtectedSquare {
+    public:
+        int m_row;
+        int m_col;
+        ProtectedSquare(int row, int col);
+        void printPSquare();
 };
 
 class Pawn: public Piece {
@@ -65,9 +84,12 @@ class ai {
         void evaluate();
         void printBoard();
         vector<string> getPossibleMoves(int r, int c);
+        bool isOnBoard(int r, int c);
+        vector<Move> calcDiagonalMoves(int r, int c, int distance, bool addDefendingMoves);
 
     private:
-        vector<vector<Piece *>> m_Board;
+        vector<vector<Piece *> > m_Board;
+        unordered_set<ProtectedSquare> m_ProtectedSquares;
         int m_bestEvaluation;
         string m_bestMove;
 };
