@@ -156,12 +156,65 @@ class engine():
         # print(self.matrix)
         p = subprocess.run(['./aiHandler', boardAsString], capture_output=True, text=True) #Mac development
         # p = subprocess.run(['aiHandler.exe', boardAsString], capture_output=True, text=True) #Windows development
-        print(p.stdout)
+
+        print(p.stdout) #need to capture all output so cpp file can use cout for debugging for now
         
-
         #make the move on the board
+        bmfPosition = p.stdout.find("BMF: ")
+        print(p.stdout[bmfPosition:])
+        bmf = p.stdout[bmfPosition:]
+        r0, c0, r1, c1 = int(bmf[5]), int(bmf[7]), int(bmf[12]), int(bmf[14])
+        print("python code moving " + str(r0) + " " + str(c0) + " to " + str(r1) + " " + str(c1))
 
+        # self.matrix[r1][c1] = self.matrix[r0][c0]
+        # self.matrix[r0][c0] = '-'
+
+        #NEW CODE TO HANDLE PLAYING AI MOVE
+        selectedPiece = self.matrix[r0][c0]
+        self.pieceToMove = [r0, c0]
+        pieceColor = 'w' if self.turnCount % 2 == 1 else 'b'
+        myProtectedSquares = self.whiteProtectedSquares if self.turnCount % 2 == 1 else self.blackProtectedSquares
+        if selectedPiece[1] == 'S' or (r0, c0) in myProtectedSquares:
+            myProtectedSquares.clear()
+        
+        #if killing enemy scholar, remove that scholars protected square
+        enemyColor = 'b' if pieceColor == 'w' else 'w'
+        enemyProtectedSquares = self.blackProtectedSquares if self.turnCount % 2 == 1 else self.whiteProtectedSquares
+        if self.matrix[r1][c1] == enemyColor + 'S': 
+            enemyProtectedSquares.clear()
+
+        #if scholar is selected piece and clicking on same color piece to protect
+        if selectedPiece[1] == 'S' and self.matrix[r1][c1][0] == pieceColor:
+            myProtectedSquares.add((r1, c1)) #scholar position, protected position
+
+        #if thief is capturing an enemy piece
+        elif selectedPiece[1] == 'T' and self.matrix[r1][c1][0] == enemyColor:
+            self.matrix[r1][c1] = self.matrix[self.pieceToMove[0]][self.pieceToMove[1]]
+            self.matrix[self.pieceToMove[0]][self.pieceToMove[1]] = '-'
+            #TODO: REVISE TO HANDLE AI DEPLOYING CAPTURED PIECE AS WELL
+        else:    #general case, move piece
+            self.matrix[r1][c1] = self.matrix[self.pieceToMove[0]][self.pieceToMove[1]]
+            self.matrix[self.pieceToMove[0]][self.pieceToMove[1]] = '-'
+        
         #end the turn and increment turn count
+        #update turn text
+        self.turnCount += 1
+        self.gameController.sideWidget.updateTurnDisplay()
+
+        #redraw board and clean up for next turn
+        self.gameController.redrawPieces()
+        self.gameController.redrawBoard()
+
+        #check if the game is over and handle that
+        self.checkGameOver()
+        if self.isGameOver:
+            self.gameController.sideWidget.handleGameOver()
+            return
+
+        # clear the selected piece/moves, color emperor if in check
+        self.gameController.colorEmpPurpleIfAttacked()
+        self.pieceToMove = None
+        self.allowedMoves.clear()
 
     def calcAllowedMoves(self, r: int, c: int, defended: bool=False) -> set(): #defended = True will also return squares that piece is defending 
         # defended squares are defined as squares it could move to if there is an allied piece there and that allied piece on the square was captured
